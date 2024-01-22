@@ -28,7 +28,6 @@
 		"svelte": "^4.0.0"
 	},
 	"devDependencies": {
-		"@observablehq/plot": "^0.6.13",
 		"@sveltejs/adapter-auto": "^3.0.0",
 		"@sveltejs/kit": "^2.0.0",
 		"@sveltejs/package": "^2.0.0",

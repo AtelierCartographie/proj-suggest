@@ -1,5 +1,5 @@
 <script>
-	import Map from './Map.Svelte';
+	import Map from './Map.svelte';
 </script>
 
 <h1>Suggestions de projections</h1>
