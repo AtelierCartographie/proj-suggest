@@ -1,20 +1,15 @@
 <script>
 	import { intersect, match } from '../stores.js';
 
-	// trier les items de intersect et match par share et ratio
-	$: intersect_sorted = $intersect.sort((a, b) => {
-		if (b.within === a.within) {
-			return b.share - a.share;
-		}
-		return b.within - a.within;
+	// Ajouter les match sous forme d'émoji
+	// et trier les résultats par match puis par share
+	$: intersect_sorted = $intersect.map(add_emoji).sort((a, b) => {
+		if (a.match === '✅' && b.match !== '✅') return -1;
+		if (b.match === '✅' && a.match !== '✅') return 1;
+		return b.share - a.share;
 	});
 
-	// TODO n'utiliser qu'un seul tableau pour intersect et match et ajouter un champ avec l'emoji ✅ ou ❌
-
 	function add_emoji(item) {
-		// if ($match.length === 0) {
-		// 	return { ...item, match: '❌' };
-		// }
 		return $match.some((d) => d.id === item.id)
 			? { ...item, match: '✅' }
 			: { ...item, match: '❌' };
@@ -40,8 +35,8 @@
 			</tr>
 		</thead>
 		<tbody>
-			{#each intersect_sorted.map(add_emoji) as item}
-				<tr>
+			{#each intersect_sorted as item}
+				<tr data-match={item.match === '✅' ? true : false}>
 					<td>{item.id}</td>
 					<td>{item.projection}</td>
 					<td>{to_string_rounded_percent(item.share)}</td>
@@ -70,5 +65,8 @@
 	th,
 	td {
 		padding: 0.5rem;
+	}
+	tr[data-match='true'] {
+		background-color: #c8e6c9;
 	}
 </style>
