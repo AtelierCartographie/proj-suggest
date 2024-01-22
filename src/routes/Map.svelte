@@ -5,6 +5,7 @@
 	import countries from '/src/assets/gisco_60M_countries.json';
 	import { countries_projection } from '$lib/proj_list.js';
 	import { get_intersected_bbox, get_matched_bbox } from '$lib/country_match.js';
+	import { intersect, match } from '../stores.js';
 
 	let width = 900;
 
@@ -22,10 +23,10 @@
 
 	// BBOX MATCH
 	let ref_bbox = [-8, 50, 3, 60];
-	$: intersect = get_intersected_bbox(ref_bbox, countries_projection);
-	$: interset_bbox = intersect.map((d) => d.bbox);
-	$: match = get_matched_bbox(ref_bbox, countries_projection);
-	$: matched_bbox = match.map((d) => d.bbox);
+	$: $intersect = get_intersected_bbox(ref_bbox, countries_projection);
+	$: interset_bbox = $intersect.map((d) => d.bbox);
+	$: $match = get_matched_bbox(ref_bbox, countries_projection);
+	$: matched_bbox = $match.map((d) => d.bbox);
 
 	// BRUSH
 	let gBrush;

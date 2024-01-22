@@ -1,5 +1,6 @@
 <script>
 	import Map from './Map.svelte';
+	import Table from './Table.svelte';
 </script>
 
 <h1>Suggestions de projections</h1>
@@ -19,4 +20,8 @@
 </ul>
 <p><b>Validation si...</b> les critères (1) ET (2) sont remplies OU seulement le critère (3)</p>
 
+<h2>Carte interactive</h2>
 <Map />
+
+<h2>Résultats</h2>
+<Table />
