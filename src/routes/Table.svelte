@@ -36,7 +36,7 @@
 		</thead>
 		<tbody>
 			{#each intersect_sorted as item}
-				<tr data-match={item.match === '✅' ? true : false}>
+				<tr style={item.match === '✅' ? 'background:#c8e6c9;' : 'transparent'}>
 					<td>{item.id}</td>
 					<td>{item.projection}</td>
 					<td>{to_string_rounded_percent(item.share)}</td>
@@ -65,8 +65,5 @@
 	th,
 	td {
 		padding: 0.5rem;
-	}
-	tr[data-match='true'] {
-		background-color: #c8e6c9;
 	}
 </style>
