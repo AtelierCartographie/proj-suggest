@@ -2,6 +2,7 @@
 	import { intersect, match, ref_bbox } from '../stores.js';
 	import { get_proj_suggestions } from '$lib/suggestions.js';
 
+	// MATCH --------------------------------------------------
 	// Ajouter les match sous forme d'émoji
 	// et trier les résultats par match puis par share
 	$: intersect_sorted = $intersect.map(add_emoji).sort((a, b) => {
@@ -21,10 +22,8 @@
 		return percent.toLocaleString() + ' %';
 	}
 
-	// Faire deux colonnes. 1) avec national 2) avec toutes les projections
-
+	// SUGGESTIONS ---------------------------------------------
 	$: suggestions = get_proj_suggestions($ref_bbox);
-	$: console.log(suggestions);
 </script>
 
 <div id="results">

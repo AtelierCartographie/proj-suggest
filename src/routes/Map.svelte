@@ -86,7 +86,7 @@
 	xmlns:xlink="http://www.w3.org/1999/xlink"
 >
 	<!-- LAND -->
-	<path d={path(land)} fill="#212c40" stroke="none" filter="drop-shadow(0 0 5px #913ffc)" />
+	<path d={path(land)} fill="#212c40" stroke="none" filter="drop-shadow(0 0 5px #005aff)" />
 	<!-- BORDERS -->
 	<path d={path(borders)} fill="none" stroke="#fff" stroke-opacity="0.2" stroke-width="0.5" />
 	<!-- INTERSECT -->
