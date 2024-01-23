@@ -1,0 +1,35 @@
+:root {
+	font-family:
+		-apple-system,
+		BlinkMacSystemFont,
+		avenir next,
+		avenir,
+		segoe ui,
+		helvetica neue,
+		helvetica,
+		Cantarell,
+		Ubuntu,
+		roboto,
+		noto,
+		arial,
+		sans-serif;
+}
+
+body {
+	background-color: #1a222f;
+	color: rgba(255, 255, 255, 0.9);
+	margin: 3rem;
+}
+
+h1,
+h2,
+h3,
+h4 {
+	font-family:
+		Menlo,
+		Consolas,
+		Monaco,
+		Liberation Mono,
+		Lucida Console,
+		monospace;
+}
