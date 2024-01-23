@@ -22,37 +22,71 @@
 	}
 
 	// Faire deux colonnes. 1) avec national 2) avec toutes les projections
+
+	$: suggestions = get_proj_suggestions($ref_bbox);
+	$: console.log(suggestions);
 </script>
 
-<p><b>Intersection et correspondance</b> avec des bbox de projections nationales</p>
-<div class="table-container">
-	<table>
-		<thead>
-			<tr>
-				<th>ID</th>
-				<th>projection</th>
-				<th>share</th>
-				<th>ratio</th>
-				<th>within</th>
-				<th>match</th>
-			</tr>
-		</thead>
-		<tbody>
-			{#each intersect_sorted as item}
-				<tr style={item.match === '✅' ? 'background:#126115;' : 'transparent'}>
-					<td>{item.id}</td>
-					<td>{item.projection}</td>
-					<td>{to_string_rounded_percent(item.share)}</td>
-					<td>{to_string_rounded_percent(item.ratio)}</td>
-					<td>{item.within}</td>
-					<td>{item.match}</td>
-				</tr>
-			{/each}
-		</tbody>
-	</table>
+<div id="results">
+	<div id="match">
+		<p><b>Intersection et correspondance</b> avec des bbox de projections nationales</p>
+		<div class="table-container">
+			<table>
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>projection</th>
+						<th>share</th>
+						<th>ratio</th>
+						<th>within</th>
+						<th>match</th>
+					</tr>
+				</thead>
+				<tbody>
+					{#each intersect_sorted as item}
+						<tr style={item.match === '✅' ? 'background:#126115;' : 'transparent'}>
+							<td>{item.id}</td>
+							<td>{item.projection}</td>
+							<td>{to_string_rounded_percent(item.share)}</td>
+							<td>{to_string_rounded_percent(item.ratio)}</td>
+							<td>{item.within}</td>
+							<td>{item.match}</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
+	</div>
+	<div id="suggestions">
+		<p><b>Suggestions</b> de projections</p>
+		<div class="table-container">
+			<table>
+				<thead>
+					<tr>
+						<th>projection</th>
+						<th>scale</th>
+						<th>shape</th>
+					</tr>
+				</thead>
+				<tbody>
+					{#each suggestions as item}
+						<tr>
+							<td>{item.id}</td>
+							<td>{item.scale.join()}</td>
+							<td>{item.shape}</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
+	</div>
 </div>
 
 <style>
+	#results {
+		display: flex;
+		flex-direction: row;
+	}
 	.table-container {
 		overflow-x: auto;
 		min-height: 200px;
