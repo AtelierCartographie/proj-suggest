@@ -1,5 +1,5 @@
 <script>
-	import { intersect, match, ref_bbox } from '../stores.js';
+	import { intersect, match, suggestions, ref_bbox } from '../stores.js';
 	import { get_proj_suggestions } from '$lib/suggestions.js';
 
 	// MATCH --------------------------------------------------
@@ -23,7 +23,7 @@
 	}
 
 	// SUGGESTIONS ---------------------------------------------
-	$: suggestions = get_proj_suggestions($ref_bbox);
+	$: $suggestions = get_proj_suggestions($ref_bbox);
 </script>
 
 <div id="results">
@@ -65,14 +65,20 @@
 						<th>projection</th>
 						<th>scale</th>
 						<th>shape</th>
+						{#if $suggestions[0].center}
+							<th>center</th>
+						{/if}
 					</tr>
 				</thead>
 				<tbody>
-					{#each suggestions as item}
+					{#each $suggestions as item}
 						<tr>
 							<td>{item.id}</td>
 							<td>{item.scale.join()}</td>
 							<td>{item.shape}</td>
+							{#if item.center}
+								<td>lon: {item.center.lon}, lat: {item.center.lat}</td>
+							{/if}
 						</tr>
 					{/each}
 				</tbody>

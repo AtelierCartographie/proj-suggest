@@ -19,7 +19,7 @@ export function get_proj_suggestions(bbox) {
 
 	// WORLD
 	// No parameter needed
-	if (scale_type === 'world') return proj_list.filter((d) => d.scale.includes(scale_type));
+	if (scale_type === 'world') return projections.filter((d) => d.scale.includes(scale_type));
 
 	// bbox centroid
 	const [cx, cy] = get_bbox_centroid(bbox);
@@ -28,36 +28,47 @@ export function get_proj_suggestions(bbox) {
 	let filters = { scale: scale_type, id: [] }; // store projection filters criteria
 
 	// HEMISPHERE + REGION
+	// need snapping to pole or equator ?
+	const snap_to_pole_75 = Math.abs(cy) > 75;
+	const snap_to_pole_85 = Math.abs(cy) > 85;
+	const snap_to_equator = Math.abs(cy) < 15;
+	const within_tropics = Math.abs(y0) < 23.44 && Math.abs(y1) < 23.44;
+	const sign = Math.sign(cy);
+
 	const id = scale_type + '-' + ratio_type;
 	switch (id) {
+		case 'hemisphere-landscape':
+			if (snap_to_pole_85) proj.center.lat = sign * 90;
+			if (within_tropics) {
+				proj.center.lat = 0;
+				filters.id.push('mercator', 'cylindrical_equal_area', 'equirectangular');
+				break;
+			}
+			filters.id.push('laea', 'azimuthal_equidistant');
+			break;
+
 		case 'region-square':
-			// Snap to pole
-			if (cy > 75) proj.center.lat = 90;
-			if (cy < -75) proj.center.lat = -90;
-			// Snap to equator
-			if (cy > -15 && cy < 15) proj.center.lat = 0;
+			if (snap_to_pole_75) proj.center.lat = sign * 90;
+			if (snap_to_equator) proj.center.lat = 0;
+			filters.id.push('laea', 'stereographic', 'equidistant_conic');
 			break;
 
 		case 'region-landscape':
-			// Snap to pole
-			if (cy > 75) proj.center.lat = 90;
-			if (cy < -75) proj.center.lat = -90;
-			// Snap to equator
-			if (cy > -15 && cy < 15) proj.center.lat = 0;
-			// Also snap to equator if within tropics
-			if (Math.abs(y0) < 23.44 && Math.abs(y1) < 23.44) proj.center.lat = 0;
+			if (snap_to_pole_75) {
+				proj.center.lat = sign * 90;
+				filters.id.push('laea', 'stereographic', 'azimuthal_equidistant');
+				break;
+			}
+			if (snap_to_equator || within_tropics) {
+				proj.center.lat = 0;
+				filters.id.push('cylindrical_equal_area', 'mercator', 'equidistant_cylindric');
+				break;
+			}
+			filters.id.push('albers_conic', 'lambert_conformal_conic', 'equidistant_conic');
 			break;
 
-		case 'hemisphere-landscape':
-			// Snap to pole
-			if (cy > 85) proj.center.lat = 90;
-			if (cy < -85) proj.center.lat = -90;
-			// Snap to equator if within tropics
-			if (Math.abs(y0) < 23.44 && Math.abs(y1) < 23.44) {
-				console.log(id);
-				proj.center.lat = 0;
-				filters.id.push('mercator', 'cylindrical_equal_area', 'equirectangular');
-			}
+		case 'region-portrait':
+			filters.id.push('transverse_cylindrical_equal_area', 'transverse_mercator', 'cassini');
 			break;
 	}
 
@@ -66,7 +77,7 @@ export function get_proj_suggestions(bbox) {
 			d.scale.includes(scale_type) && (filters.id.length > 0 ? filters.id.includes(d.id) : true)
 	);
 
-	return list;
+	return list.map((d) => ({ ...d, ...proj }));
 
 	function get_scale(earth_share) {
 		if (earth_share >= 2 / 3) return 'world';

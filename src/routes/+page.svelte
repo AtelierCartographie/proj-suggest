@@ -1,7 +1,20 @@
 <script>
 	import '../global.css';
 	import Map from './Map.svelte';
+	import ProjPreview from './Proj_preview.svelte';
 	import Table from './Table.svelte';
+
+	// TODO
+	// - [X] Add d3-zoom to the map
+	// - [ ] Use Carbon Design System for the UI, https://carbon-components-svelte.onrender.com/
+	// - [ ] Add a page with the list of projections (suggested and national)
+	// - [ ] Add a page with the methodology
+	// - [ ] Add a menu to switch between the pages
+	// - [ ] Add an input to customize the bbox
+	// - [ ] Link the bbox to page url as query params
+	// - [ ] Add a button to copy to clipboard suggestions in proj4 or d3.geo
+	// - [ ] Use proj4d3, https://observablehq.com/@fil/proj4js-d3#proj4d3
+	// - [ ] Add previews as a collection of map in canvas of the suggested projections
 </script>
 
 <h1>Suggestions de projections</h1>
@@ -25,3 +38,7 @@
 <Map />
 
 <Table />
+
+<h2>Preview</h2>
+
+<ProjPreview />
