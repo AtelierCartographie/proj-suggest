@@ -5,7 +5,6 @@
 	import { zoom } from 'd3-zoom';
 	import land from '/src/assets/gisco_60M_land.json';
 	import borders from '/src/assets/gisco_60M_borders.json';
-	import { countries_projection } from '$lib/proj_list.js';
 	import { get_intersected_bbox, get_matched_bbox } from '$lib/country_match.js';
 	import { intersect, match, ref_bbox } from '../stores.js';
 
@@ -24,9 +23,9 @@
 	const path = geoPath(projection);
 
 	// BBOX MATCH
-	$: $intersect = get_intersected_bbox($ref_bbox, countries_projection);
+	$: $intersect = get_intersected_bbox($ref_bbox);
 	$: interset_bbox = $intersect.map((d) => d.bbox);
-	$: $match = get_matched_bbox($ref_bbox, countries_projection);
+	$: $match = get_matched_bbox($ref_bbox);
 	$: matched_bbox = $match.map((d) => d.bbox);
 
 	// ZOOM --------------------------------------------------

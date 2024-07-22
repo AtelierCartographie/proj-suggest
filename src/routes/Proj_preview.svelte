@@ -1,14 +1,10 @@
 <script>
-	import { geoProjection, geoIdentity, geoEqualEarth } from 'd3-geo';
-	import { geoClipPolygon } from 'd3-geo-polygon';
+	import { geoProjection } from 'd3-geo';
 	import proj4 from 'proj4';
 	import { match, suggestions, ref_bbox } from '../stores.js';
 	import MapCanvas from './Map_canvas.svelte';
 
 	// TODO
-	// - [ ] si match le clacul de la projection ralenti tout, ne pas reclaculer les matchs à chaque fois
-	// - [ ] si brush en cours, ne pas recalculer les matchs
-	// - [ ] clip de la projection à la bbox. Projeter les coordonnées de la bbox dans l'absolue avant mise à l'échelle par d3.
 	// - [ ] ajouter un bouton pour copier la projection dans le presse-papier au format proj4 ou d3.geo
 
 	function polygon_to_bbox(bbox) {

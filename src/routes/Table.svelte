@@ -1,6 +1,6 @@
 <script>
 	import { intersect, match, suggestions, ref_bbox } from '../stores.js';
-	import { get_proj_suggestions } from '$lib/suggestions.js';
+	import { get_proj_suggestions } from '$lib/index.js';
 
 	// MATCH --------------------------------------------------
 	// Ajouter les match sous forme d'émoji
@@ -45,7 +45,7 @@
 					{#each intersect_sorted as item}
 						<tr style={item.match === '✅' ? 'background:#126115;' : 'transparent'}>
 							<td>{item.id}</td>
-							<td>{item.projection}</td>
+							<td>{item.projection}, EPSG:{item.epsg}</td>
 							<td>{to_string_rounded_percent(item.share)}</td>
 							<td>{to_string_rounded_percent(item.ratio)}</td>
 							<td>{item.within}</td>
@@ -65,9 +65,7 @@
 						<th>projection</th>
 						<th>scale</th>
 						<th>shape</th>
-						{#if $suggestions[0].center}
-							<th>center</th>
-						{/if}
+						<th>proj4</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -76,9 +74,7 @@
 							<td>{item.id}</td>
 							<td>{item.scale.join()}</td>
 							<td>{item.shape}</td>
-							{#if item.center}
-								<td>lon: {item.center.lon}, lat: {item.center.lat}</td>
-							{/if}
+							<td>{item.proj4}</td>
 						</tr>
 					{/each}
 				</tbody>
