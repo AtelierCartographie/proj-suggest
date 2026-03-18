@@ -1,14 +1,8 @@
 # proj-suggest
 
-Bibliothèque TypeScript qui suggère des projections cartographiques adaptées à partir d'une bounding box (bbox), y compris des projections nationales officielles.
+Bibliothèque TypeScript, sans dépendance, qui suggère des projections cartographiques adaptées à partir d'une bounding box (bbox), y compris des projections nationales officielles.
 
-L'algorithme de sélection est une **réimplémentation indépendante** de l'arbre de décision cartographique publié par Snyder (1987) et formalisé par Šavrič et al. (2016). Contrairement à l'outil en ligne [Projection Wizard](https://projectionwizard.org), cette bibliothèque est :
-
-- **zéro dépendance**
-- **sans UI** — fonctions pures TypeScript, utilisables dans n'importe quel environnement
-- **sans dimension de propriété de distorsion** — toutes les projections adaptées sont retournées simultanément
-- **orientée développeur** — API typée, entrée/sortie normalisées, import npm
-- **augmentée** — module de correspondance avec les projections nationales officielles (`match_national_projections`)
+L'algorithme de sélection est une **réimplémentation indépendante** de l'arbre de décision cartographique publié par Snyder (1987) et formalisé par Šavrič et al. (2016).
 
 Created by: [Thomas Ansart — Atelier de cartographie de Sciences Po](https://www.sciencespo.fr/cartographie/)
 License: ISC
