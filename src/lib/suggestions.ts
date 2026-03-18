@@ -15,7 +15,25 @@
  * @license ISC
  */
 import { get_earth_share, get_bbox_centroid, type BBox } from './utils.js';
-import { projections, type ResolvedProjection, type ScaleType } from './list_proj_suggestions.js';
+import {
+	projections,
+	type Projection,
+	type ProjParams,
+	type ResolvedProjection,
+	type ScaleType
+} from './list_proj_suggestions.js';
+
+function resolve(p: Projection, params: ProjParams): ResolvedProjection {
+	return {
+		id: p.id,
+		name: p.name,
+		scale: p.scale,
+		shape: p.shape,
+		...(p.equalarea !== undefined && { equalarea: p.equalarea }),
+		proj4: p._proj4 ? { string: p._proj4(params) } : null,
+		d3: p._d3 ? p._d3(params) : null
+	};
+}
 
 type RatioType = 'landscape' | 'portrait' | 'square';
 
@@ -46,8 +64,8 @@ export function suggest_generic_projections(bbox: BBox): ResolvedProjection[] {
 	// World: no parameters needed
 	if (scale_type === 'world') {
 		return projections
-			.filter((d) => d.scale.includes(scale_type) && d.proj4)
-			.map((d) => ({ ...d, proj4: d.proj4!() }) as ResolvedProjection);
+			.filter((d) => d.scale.includes(scale_type))
+			.map((d) => resolve(d, {}));
 	}
 
 	const [cx, cy] = get_bbox_centroid(bbox);
@@ -125,8 +143,7 @@ export function suggest_generic_projections(bbox: BBox): ResolvedProjection[] {
 		.filter(
 			(d) =>
 				d.scale.includes(scale_type) &&
-				d.proj4 &&
 				(filter_ids.length > 0 ? filter_ids.includes(d.id) : true)
 		)
-		.map((d) => ({ ...d, proj4: d.proj4!(proj) }) as ResolvedProjection);
+		.map((d) => resolve(d, proj));
 }

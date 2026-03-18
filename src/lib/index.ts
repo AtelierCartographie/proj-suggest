@@ -39,6 +39,8 @@ export type { MatchedCountry } from './country_match.js';
 export type {
 	Projection,
 	ResolvedProjection,
+	Proj4Usage,
+	D3Usage,
 	ProjParams,
 	ScaleType,
 	ShapeType

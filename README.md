@@ -135,6 +135,36 @@ Dans ces cas, la fonction de validation peut retourner `valid: true`, alors que 
 
 ---
 
+## Projections génériques disponibles
+
+Pour les échelles hors `world`, la bibliothèque peut retourner les projections suivantes selon les caractéristiques de la bbox.
+
+| Projection                        | Surfaces égales | Échelle                     | Format                                                 | Forme         |
+| --------------------------------- | :-------------: | --------------------------- | ------------------------------------------------------ | ------------- |
+| Orthographic                      |                 | hémisphère                  | tous¹                                                  | ronde         |
+| Lambert Azimuthal Equal Area      |        ✓        | hémisphère · région         | hém. : tous¹ · rég. : carré, paysage                   | ronde         |
+| Azimuthal Equidistant             |                 | hémisphère · région         | hém. : tous¹ · rég. : paysage²                         | discontinue   |
+| Mercator                          |                 | hémisphère · région · local | hém. : tous³ · rég. : paysage⁴ · loc. : carré, paysage | rectangulaire |
+| Cylindrical Equal Area            |        ✓        | hémisphère · région         | hém. : tous³ · rég. : paysage⁴                         | rectangulaire |
+| Equirectangular                   |                 | hémisphère · région · local | hém. : tous³ · rég. : paysage⁴ · loc. : carré, paysage | rectangulaire |
+| Albers Conic                      |        ✓        | région                      | paysage⁵                                               | ronde         |
+| Lambert Conformal Conic           |                 | région                      | paysage⁵                                               | ronde         |
+| Equidistant Conic                 |                 | région                      | carré · paysage⁵                                       | ronde         |
+| Stereographic                     |                 | région                      | carré · paysage²                                       | ronde         |
+| Transverse Cylindrical Equal Area |        ✓        | région · local              | rég. : portrait · loc. : tous                          | rectangulaire |
+| Transverse Mercator               |                 | région · local              | rég. : portrait · loc. : tous                          | ronde         |
+| Cassini                           |                 | région                      | portrait                                               | ronde         |
+
+> ¹ Hors zone tropicale · uniquement si la bbox ≤ 180° de large pour Orthographic.
+> ² Zone polaire (centroïde |lat| > 75°).
+> ³ Zone entièrement dans les tropiques (|lat| < 23,44°).
+> ⁴ Zone équatoriale (centroïde |lat| < 15°) ou tropicale.
+> ⁵ Zone tempérée (hors équateur et hors zones polaires).
+
+> **Forme** : _ronde_ — contour en ovale ou cercle · _rectangulaire_ — carte en cadre plein · _discontinue_ — carte avec ruptures géographiques.
+
+---
+
 ## Algorithme de suggestion de projections
 
 L'algorithme implémenté dans `suggest_generic_projections` suit un raisonnement en cascade qui part de la bbox fournie pour déterminer l'échelle, le ratio de forme, et la position géographique de la zone, puis sélectionne les projections les plus adaptées.

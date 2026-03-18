@@ -34,13 +34,47 @@ describe('suggest_generic_projections', () => {
 		const bbox: BBox = [-180, -90, 180, 90];
 		const results = suggest_generic_projections(bbox);
 		expect(results.length).toBeGreaterThan(0);
-		expect(results.every((d) => d.proj4)).toBe(true);
+		// All world projections have at least one of proj4 or d3
+		expect(results.every((d) => d.proj4 !== undefined || d.d3 !== undefined)).toBe(true);
+		// proj4-supported ones have a non-empty string
+		const withProj4 = results.filter((d) => d.proj4 !== null);
+		expect(withProj4.every((d) => typeof d.proj4!.string === 'string' && d.proj4!.string.length > 0)).toBe(true);
 	});
 
-	it('returns region projections for France bbox', () => {
+	it('includes d3-only projections (no proj4) for world bbox', () => {
+		const bbox: BBox = [-180, -90, 180, 90];
+		const results = suggest_generic_projections(bbox);
+		const d3only = results.filter((d) => d.proj4 === null);
+		expect(d3only.length).toBeGreaterThan(0);
+		expect(d3only.every((d) => d.d3 !== null && typeof d.d3!.projection === 'string')).toBe(true);
+	});
+
+	it('returns region projections for France bbox with proj4 and d3', () => {
 		const bbox: BBox = [-5, 41, 10, 51];
 		const results = suggest_generic_projections(bbox);
 		expect(results.length).toBeGreaterThan(0);
+		// All region projections support both proj4 and d3
+		expect(results.every((d) => d.proj4 !== null && d.d3 !== null)).toBe(true);
+	});
+
+	it('proj4 strings are dynamic and vary with bbox', () => {
+		const france: BBox = [-5, 41, 10, 51];
+		const chile: BBox = [-76, -56, -66, -17];
+		const r_france = suggest_generic_projections(france);
+		const r_chile = suggest_generic_projections(chile);
+		// Both return landscape/portrait region projections but with different params
+		expect(r_france[0].proj4!.string).not.toBe(r_chile[0].proj4!.string);
+	});
+
+	it('d3 config has correct rotate for a known projection', () => {
+		// region-landscape in temperate zone → albers_conic + others
+		const bbox: BBox = [-20, 35, 30, 65];
+		const results = suggest_generic_projections(bbox);
+		const albers = results.find((d) => d.id === 'albers_conic');
+		expect(albers).toBeDefined();
+		expect(albers!.d3!.projection).toBe('geoAlbers');
+		expect(albers!.d3!.rotate).toBeDefined();
+		expect(albers!.d3!.parallels).toBeDefined();
 	});
 });
 
@@ -56,6 +90,35 @@ describe('match_national_projections', () => {
 		const bbox: BBox = [100, 10, 110, 20];
 		const results = match_national_projections(bbox);
 		expect(results).toEqual([]);
+	});
+
+	it('national projections have standalone proj4 strings', () => {
+		const bbox: BBox = [-4, 42, 8, 50]; // France
+		const results = match_national_projections(bbox);
+		expect(results.length).toBeGreaterThan(0);
+		expect(results.every((d) => typeof d.proj4 === 'string' && d.proj4.includes('+proj='))).toBe(true);
+	});
+
+	it('national projections have d3 config', () => {
+		const bbox: BBox = [-4, 42, 8, 50]; // France
+		const results = match_national_projections(bbox);
+		expect(results.every((d) => d.d3 !== null && typeof d.d3.projection === 'string')).toBe(true);
+	});
+
+	it('France proj4 has correct lon_0', () => {
+		const bbox: BBox = [-4, 42, 8, 50];
+		const results = match_national_projections(bbox);
+		const france = results.find((d) => d.id === 'france');
+		expect(france).toBeDefined();
+		expect(france!.proj4).toContain('+lon_0=3');
+	});
+
+	it('USA proj4 has correct lon_0 (not neutralized)', () => {
+		const bbox: BBox = [-124.85, 24.55, -66.88, 49.38];
+		const results = match_national_projections(bbox);
+		const usa = results.find((d) => d.id === 'usa');
+		expect(usa).toBeDefined();
+		expect(usa!.proj4).toContain('+lon_0=-96');
 	});
 });
 
