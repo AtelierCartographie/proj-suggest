@@ -33,7 +33,8 @@ export function suggest_projections(
 
 export { suggest_generic_projections } from './suggestions.js';
 export { match_national_projections, get_intersecting_countries } from './country_match.js';
-export type { BBox } from './utils.js';
+export { validate_bbox } from './utils.js';
+export type { BBox, BBoxValidation } from './utils.js';
 export type { MatchedCountry } from './country_match.js';
 export type {
 	Projection,

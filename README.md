@@ -16,11 +16,16 @@ npm install proj-suggest
 ## Utilisation rapide
 
 ```ts
-import { suggest_projections } from 'proj-suggest';
+import { suggest_projections, validate_bbox } from 'proj-suggest';
 import type { BBox } from 'proj-suggest';
 
 // Définir une bbox [lon_min, lat_min, lon_max, lat_max]
 const bbox: BBox = [-5, 41, 10, 51]; // France métropolitaine
+
+const validation = validate_bbox(bbox);
+if (!validation.valid) {
+	throw new Error(`BBox invalide: ${validation.errors.join(' | ')}`);
+}
 
 // Obtenir toutes les suggestions en un seul appel
 const { national, generic } = suggest_projections(bbox);
@@ -57,6 +62,23 @@ Retourne uniquement les projections génériques suggérées pour la bbox donné
 
 Retourne les pays dont la projection nationale correspond à la bbox de référence.
 
+### `validate_bbox(bbox: BBox): BBoxValidation`
+
+Valide une bbox avant appel des fonctions de suggestion. Retourne un objet:
+
+- `valid`: `true` si la bbox est valide
+- `errors`: tableau de messages d'erreur détaillés
+
+Contrôles effectués:
+
+- 4 valeurs finies (`number`, sans `NaN` ni `Infinity`)
+- `lon_min` et `lon_max` dans [−180, 180]
+- `lat_min` et `lat_max` dans [−90, 90]
+- `lat_min <= lat_max`
+- bbox non dégénérée (largeur et hauteur non nulles)
+
+Note: `lon_min > lon_max` est autorisé et interprété comme un passage par l'antiméridien (±180°).
+
 ### `get_intersecting_countries(bbox: BBox): MatchedCountry[]`
 
 Retourne tous les pays dont la bbox intersecte la bbox de référence, avec les métriques d'intersection (`share`, `ratio`, `within`), sans appliquer de filtre de correspondance.
@@ -73,6 +95,11 @@ interface SuggestOptions {
 interface ProjectionSuggestions {
 	national: MatchedCountry[]; // Projections nationales correspondantes (prioritaires)
 	generic: ResolvedProjection[]; // Projections génériques issues de l'arbre de décision
+}
+
+interface BBoxValidation {
+	valid: boolean;
+	errors: string[];
 }
 
 interface ResolvedProjection {
@@ -96,6 +123,15 @@ interface MatchedCountry {
 	within: boolean; // La bbox référence est-elle entièrement contenue dans la bbox pays ?
 }
 ```
+
+### Limites de `validate_bbox`
+
+`validate_bbox` vérifie uniquement la validité géométrique et numérique de la bbox. Certains cas restent hors de son périmètre:
+
+- Bbox valide mais peu pertinente cartographiquement (ex: zone extrêmement petite)
+- Coordonnées en dehors de l'intention EPSG:4326 mais numériquement dans les plages autorisées
+
+Dans ces cas, la fonction de validation peut retourner `valid: true`, alors que les suggestions resteront techniquement calculables mais potentiellement peu utiles.
 
 ---
 
@@ -259,14 +295,36 @@ Correspondance = ( share ≥ 0.75 ET ratio < 2 ) OU within
 ### Suggestion pour la France métropolitaine
 
 ```ts
-import { suggest_projections } from 'proj-suggest';
+import { suggest_projections, validate_bbox } from 'proj-suggest';
 
 const france: BBox = [-5, 41, 10, 51];
+
+const validation = validate_bbox(france);
+if (!validation.valid) {
+	throw new Error(`BBox invalide: ${validation.errors.join(' | ')}`);
+}
 
 const { national, generic } = suggest_projections(france);
 // national → [{ id: 'france', epsg: '2154', projection: 'lambert93', share: ~0.93, ratio: ~1.1, within: true }]
 // generic  → Albers Conic, Lambert Conformal Conic, Equidistant Conic
 //            Centrées sur lon≈2.5, lat≈46, avec parallèles standard adaptés
+```
+
+### Exemple de validation détaillée
+
+```ts
+import { validate_bbox } from 'proj-suggest';
+
+const invalidBbox = [10, 60, 10, 40] as const;
+const result = validate_bbox(invalidBbox as [number, number, number, number]);
+
+if (!result.valid) {
+	console.error(result.errors);
+	// [
+	//   'lat_min (60) must be ≤ lat_max (40).',
+	//   'lon_min and lon_max are equal — bbox has no width.'
+	// ]
+}
 ```
 
 ### Suggestion pour le monde entier

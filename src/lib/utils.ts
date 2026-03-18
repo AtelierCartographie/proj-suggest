@@ -1,5 +1,82 @@
-/** Bounding box as [lon_min, lat_min, lon_max, lat_max] in EPSG:4326. */
+/**
+ * Bounding box as [lon_min, lat_min, lon_max, lat_max] in EPSG:4326.
+ *
+ * Follows the GeoJSON / OGC convention: `[west, south, east, north]`.
+ *
+ * `lon_min > lon_max` is interpreted as crossing the antimeridian (±180°).
+ *
+ * Use {@link validate_bbox} to check validity before passing to suggestion
+ * functions. Without validation, invalid bbox values will produce silently
+ * incorrect results rather than errors.
+ */
 export type BBox = [number, number, number, number];
+
+export interface BBoxValidation {
+	valid: boolean;
+	errors: string[];
+}
+
+/**
+ * Validates a bounding box.
+ *
+ * Checks performed:
+ * - All four values are finite numbers (no `NaN`, `Infinity`).
+ * - Longitudes are in [−180, 180].
+ * - Latitudes are in [−90, 90].
+ * - `lat_min ≤ lat_max` (inverted latitudes are always invalid).
+ * - The bbox has non-zero area (not a point or a line).
+ *
+ * Note: `lon_min > lon_max` is considered **valid** — it represents a bbox
+ * crossing the antimeridian, which the library handles correctly.
+ *
+ * **Edge cases not caught by this function:**
+ * - Bboxes that are geometrically valid but nonsensical for projection
+ *   selection (e.g. a 1 m² bbox — the algorithm will return results, but
+ *   they are unlikely to be meaningful).
+ * - Coordinate reference systems other than EPSG:4326 — values may fall
+ *   within the valid ranges but represent a completely different location.
+ */
+export function validate_bbox(bbox: BBox): BBoxValidation {
+	const [lon_min, lat_min, lon_max, lat_max] = bbox;
+	const errors: string[] = [];
+
+	// Finite check
+	if (!bbox.every(Number.isFinite)) {
+		errors.push('All values must be finite numbers (no NaN or Infinity).');
+		return { valid: false, errors };
+	}
+
+	// Longitude range
+	if (lon_min < -180 || lon_min > 180) {
+		errors.push(`lon_min (${lon_min}) is out of range [−180, 180].`);
+	}
+	if (lon_max < -180 || lon_max > 180) {
+		errors.push(`lon_max (${lon_max}) is out of range [−180, 180].`);
+	}
+
+	// Latitude range
+	if (lat_min < -90 || lat_min > 90) {
+		errors.push(`lat_min (${lat_min}) is out of range [−90, 90].`);
+	}
+	if (lat_max < -90 || lat_max > 90) {
+		errors.push(`lat_max (${lat_max}) is out of range [−90, 90].`);
+	}
+
+	// Latitude order
+	if (lat_min > lat_max) {
+		errors.push(`lat_min (${lat_min}) must be ≤ lat_max (${lat_max}).`);
+	}
+
+	// Degenerate bbox (zero area)
+	if (lon_min === lon_max) {
+		errors.push('lon_min and lon_max are equal — bbox has no width.');
+	}
+	if (lat_min === lat_max) {
+		errors.push('lat_min and lat_max are equal — bbox has no height.');
+	}
+
+	return { valid: errors.length === 0, errors };
+}
 
 /**
  * Calculates the share of the area of bbox_2 that is intersected by bbox_1.
