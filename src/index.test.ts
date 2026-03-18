@@ -3,8 +3,8 @@ import {
 	suggest_projections,
 	suggest_generic_projections,
 	match_national_projections
-} from '$lib/index.js';
-import type { BBox } from '$lib/index.js';
+} from './lib/index.js';
+import type { BBox } from './lib/index.js';
 
 describe('suggest_projections', () => {
 	it('returns both national and generic for France bbox', () => {
