@@ -1,6 +1,6 @@
 <script>
-	import { intersect, match, suggestions, ref_bbox } from '../stores.js';
-	import { get_proj_suggestions } from '$lib/index.js';
+	import { intersect, match, suggestions, ref_bbox } from './stores.js';
+	import { suggest_generic_projections } from '$lib/index.js';
 
 	// MATCH --------------------------------------------------
 	// Ajouter les match sous forme d'émoji
@@ -23,7 +23,7 @@
 	}
 
 	// SUGGESTIONS ---------------------------------------------
-	$: $suggestions = get_proj_suggestions($ref_bbox);
+	$: $suggestions = suggest_generic_projections($ref_bbox);
 </script>
 
 <div id="results">
@@ -42,7 +42,7 @@
 					</tr>
 				</thead>
 				<tbody>
-					{#each intersect_sorted as item}
+					{#each intersect_sorted as item (item.id)}
 						<tr style={item.match === '✅' ? 'background:#126115;' : 'transparent'}>
 							<td>{item.id}</td>
 							<td>{item.projection}, EPSG:{item.epsg}</td>
@@ -69,7 +69,7 @@
 					</tr>
 				</thead>
 				<tbody>
-					{#each $suggestions as item}
+					{#each $suggestions as item (item.id)}
 						<tr>
 							<td>{item.id}</td>
 							<td>{item.scale.join()}</td>

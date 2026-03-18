@@ -3,7 +3,7 @@
 	import { geoPath, geoIdentity } from 'd3-geo';
 	import land from '/src/assets/gisco_60M_land.json';
 	import borders from '/src/assets/gisco_60M_borders.json';
-	import { ref_bbox } from '../stores.js';
+	import { ref_bbox } from './stores.js';
 
 	export let id = 'proj_preview';
 	export let width = 300;

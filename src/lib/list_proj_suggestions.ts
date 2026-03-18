@@ -1,11 +1,29 @@
-import proj4 from 'proj4';
+export type ScaleType = 'world' | 'hemisphere' | 'region' | 'local';
+export type ShapeType = 'rectangular' | 'round' | 'discontinuous' | 'rectangle';
+
+export interface ProjParams {
+	lon?: number;
+	lat?: number;
+	lat_1?: number;
+	lat_2?: number;
+}
+
+export interface Projection {
+	id: string;
+	name?: string;
+	scale: ScaleType[];
+	shape: ShapeType;
+	equalarea?: boolean;
+	proj4?: (params?: ProjParams) => string;
+}
+
+export interface ResolvedProjection extends Omit<Projection, 'proj4'> {
+	proj4: string;
+}
 
 const end_proj = '+ellps=WGS84 +datum=WGS84 +units=m +no_defs';
 
-// ⚠️ la projection transverse cylindrical n'existe pas dans d3, il faut la faire
-// ce que Bojan Savric à fait, https://github.com/ProjectionWizard/projectionwizard.github.io/blob/master/lib/transverseCylindricalEqualArea.js
-// c'est similaire à la transvere Mercator qui elle existe bien dans d3, https://github.com/d3/d3-geo/blob/main/src/projection/transverseMercator.js
-export const projections = [
+export const projections: Projection[] = [
 	{
 		id: 'equirectangular',
 		name: 'Equirectangular',
@@ -35,9 +53,9 @@ export const projections = [
 		proj4: () => `+proj=times ${end_proj}`
 	},
 
-	// TODO: find a solution for projection not supported by proj4
-	{ id: 'imago', scale: ['world'], shape: 'rectangular' }, // NOT IN PROJ4
-	{ id: 'armadillo', scale: ['world'], shape: 'round' }, // NOT IN PROJ4
+	// Projections not supported by proj4
+	{ id: 'imago', scale: ['world'], shape: 'rectangular' },
+	{ id: 'armadillo', scale: ['world'], shape: 'round' },
 
 	{
 		id: 'bertin1953',
@@ -46,8 +64,6 @@ export const projections = [
 		shape: 'round',
 		proj4: () => `+proj=bertin1953 ${end_proj}`
 	},
-	// Atlantis is an oblique aspect of the Mollweide projection
-	// use the General Oblique Transformation of proj4 to create it
 	{
 		id: 'atlantis',
 		name: 'Atlantis',
@@ -63,8 +79,8 @@ export const projections = [
 		shape: 'round',
 		proj4: () => `+proj=bonne +lat_1=45 ${end_proj}`
 	},
-	{ id: 'airocean', scale: ['world'], shape: 'discontinuous' }, // NOT IN PROJ4
-	{ id: 'mollweide_2_hemisphere', scale: ['world'], shape: 'discontinuous' }, // NOT IN PROJ4
+	{ id: 'airocean', scale: ['world'], shape: 'discontinuous' },
+	{ id: 'mollweide_2_hemisphere', scale: ['world'], shape: 'discontinuous' },
 	{
 		id: 'mollweide_interrupted',
 		name: 'Mollweide Interrupted',
@@ -79,8 +95,9 @@ export const projections = [
 		shape: 'discontinuous',
 		proj4: () => `+proj=imoll_o +lon_0=-160 ${end_proj}`
 	},
-	{ id: 'waterman', scale: ['world'], shape: 'discontinuous' }, // NOT IN PROJ4
-	// EQUAL AREA
+	{ id: 'waterman', scale: ['world'], shape: 'discontinuous' },
+
+	// Equal area
 	{
 		id: 'albers_conic',
 		name: 'Albers Conic',
@@ -122,7 +139,8 @@ export const projections = [
 		equalarea: true,
 		proj4: ({ lon = 0 } = {}) => `+proj=tcea +lon_0=${lon} ${end_proj}`
 	},
-	// conformal
+
+	// Conformal
 	{
 		id: 'lambert_conformal_conic',
 		name: 'Lambert Conformal Conic',
@@ -152,7 +170,8 @@ export const projections = [
 		shape: 'round',
 		proj4: ({ lon = 0, lat = 0 } = {}) => `+proj=ortho +lon_0=${lon} +lat_0=${lat} ${end_proj}`
 	},
-	// equidistant
+
+	// Equidistant
 	{
 		id: 'azimuthal_equidistant',
 		name: 'Azimuthal Equidistant',
@@ -173,6 +192,6 @@ export const projections = [
 		name: 'Cassini',
 		scale: ['region'],
 		shape: 'round',
-		proj4: (lon) => `+proj=cass +lon_0=${lon} ${end_proj}`
+		proj4: ({ lon = 0 } = {}) => `+proj=cass +lon_0=${lon} ${end_proj}`
 	}
 ];

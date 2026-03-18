@@ -1,31 +1,11 @@
 <script>
 	import { geoProjection } from 'd3-geo';
 	import proj4 from 'proj4';
-	import { match, suggestions, ref_bbox } from '../stores.js';
+	import { match, ref_bbox } from './stores.js';
 	import MapCanvas from './Map_canvas.svelte';
 
 	// TODO
 	// - [ ] ajouter un bouton pour copier la projection dans le presse-papier au format proj4 ou d3.geo
-
-	function polygon_to_bbox(bbox) {
-		let [x0, y0, x1, y1] = bbox;
-		x0 = Math.max(-180, x0 - 2);
-		y0 = Math.max(-90, y0 - 2);
-		x1 = Math.min(180, x1 + 2);
-		y1 = Math.min(90, y1 + 2);
-		return {
-			type: 'Polygon',
-			coordinates: [
-				[
-					[x0, y0],
-					[x0, y1],
-					[x1, y1],
-					[x1, y0],
-					[x0, y0]
-				]
-			]
-		};
-	}
 
 	function proj4d3(proj4string) {
 		const degrees = 180 / Math.PI;
@@ -50,7 +30,6 @@
 		{@const proj = rotate
 			? proj4d3(proj4).rotate(rotate).clipAngle(60)
 			: proj4d3(proj4).clipAngle(60)}
-		{@const bbox = polygon_to_bbox($ref_bbox)}
 		<div class="proj-preview">
 			{#key $ref_bbox}
 				<MapCanvas {proj} />

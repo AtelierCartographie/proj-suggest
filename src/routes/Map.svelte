@@ -5,8 +5,8 @@
 	import { zoom } from 'd3-zoom';
 	import land from '/src/assets/gisco_60M_land.json';
 	import borders from '/src/assets/gisco_60M_borders.json';
-	import { get_intersected_bbox, get_matched_bbox } from '$lib/country_match.js';
-	import { intersect, match, ref_bbox } from '../stores.js';
+	import { get_intersecting_countries, match_national_projections } from '$lib/country_match.js';
+	import { intersect, match, ref_bbox } from './stores.js';
 
 	let width = 900;
 
@@ -23,9 +23,9 @@
 	const path = geoPath(projection);
 
 	// BBOX MATCH
-	$: $intersect = get_intersected_bbox($ref_bbox);
+	$: $intersect = get_intersecting_countries($ref_bbox);
 	$: interset_bbox = $intersect.map((d) => d.bbox);
-	$: $match = get_matched_bbox($ref_bbox);
+	$: $match = match_national_projections($ref_bbox);
 	$: matched_bbox = $match.map((d) => d.bbox);
 
 	// ZOOM --------------------------------------------------
@@ -103,11 +103,11 @@
 		<!-- BORDERS -->
 		<path d={path(borders)} fill="none" stroke="#fff" stroke-opacity="0.2" stroke-width="0.5" />
 		<!-- INTERSECT -->
-		{#each interset_bbox as bbox}
+		{#each interset_bbox as bbox, i (i)}
 			<path d={path(get_polygon_from_bbox(bbox))} fill="aqua" fill-opacity="0.2" stroke="aqua" />
 		{/each}
 		<!-- MATCH -->
-		{#each matched_bbox as bbox}
+		{#each matched_bbox as bbox, i (i)}
 			<path d={path(get_polygon_from_bbox(bbox))} fill="none" stroke="lime" stroke-width="1.5" />
 		{/each}
 
