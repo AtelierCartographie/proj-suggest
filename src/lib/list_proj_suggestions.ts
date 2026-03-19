@@ -248,7 +248,7 @@ export const projections: Projection[] = [
 		scale: ['hemisphere', 'region'],
 		shape: 'rectangle',
 		equalarea: true,
-		_proj4: ({ lon = 0 } = {}) => `+proj=cea +lon_0=${lon} ${end_proj}`,
+		_proj4: ({ lon = 0 } = {}) => `+proj=cea +lon_0=${lon} +lat_ts=0 ${end_proj}`,
 		_d3: ({ lon = 0 } = {}) => ({ projection: 'geoCylindricalEqualArea', rotate: [-lon, 0] })
 	},
 	{

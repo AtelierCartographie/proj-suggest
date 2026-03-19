@@ -49,7 +49,7 @@ export const proj_countries: ProjCountry[] = [
 		projection: 'transverse mercator',
 		bbox: [-10.6, 51.4, -5.3, 55.4],
 		proj4:
-			'+proj=tmerc +lat_0=0 +lon_0=-8 +k=0.99982 +x_0=600000 +y_0=750000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs',
+			'+proj=tmerc +lat_0=53.5 +lon_0=-8 +k=0.99982 +x_0=600000 +y_0=750000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs',
 		d3: { projection: 'geoTransverseMercator', rotate: [8, -53.5] }
 	},
 	{
@@ -58,7 +58,7 @@ export const proj_countries: ProjCountry[] = [
 		projection: 'swiss oblique mercator',
 		bbox: [6, 45.8, 10.5, 47.8],
 		proj4:
-			'+proj=somerc +lat_0=46.9 +lon_0=7.4 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs',
+			'+proj=somerc +lat_0=46.9524055555556 +lon_0=7.43958333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs',
 		d3: { projection: 'geoTransverseMercator', rotate: [-7.4, -46.9] }
 	},
 	{
@@ -108,7 +108,7 @@ export const proj_countries: ProjCountry[] = [
 		projection: 'albers equal area',
 		bbox: [-124.85, 24.55, -66.88, 49.38],
 		proj4:
-			'+proj=aea +lat_0=23 +lon_0=-96 +lat_1=29.5 +lat_2=45.5 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs',
+			'+proj=aea +lat_0=23 +lon_0=-96 +lat_1=29.5 +lat_2=45.5 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs',
 		d3: { projection: 'geoAlbers', rotate: [96, 0], parallels: [29.5, 45.5] }
 	},
 	{
@@ -117,7 +117,7 @@ export const proj_countries: ProjCountry[] = [
 		projection: 'lambert conic conformal',
 		bbox: [-141.02, 41.67, -52.62, 83.12],
 		proj4:
-			'+proj=lcc +lat_0=63.390675 +lon_0=-91.87 +lat_1=49 +lat_2=77 +x_0=6200000 +y_0=3000000 +datum=NAD83 +units=m +no_defs',
+			'+proj=lcc +lat_0=63.390675 +lon_0=-91.8666666666667 +lat_1=49 +lat_2=77 +x_0=6200000 +y_0=3000000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs',
 		d3: { projection: 'geoConicConformal', rotate: [91.87, 0], parallels: [49, 77] }
 	},
 	{
@@ -136,7 +136,7 @@ export const proj_countries: ProjCountry[] = [
 		projection: 'albers equal area',
 		bbox: [112.92, -43.74, 153.64, -9.86],
 		proj4:
-			'+proj=aea +lat_0=0 +lon_0=132 +lat_1=-18 +lat_2=-36 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs',
+			'+proj=aea +lat_0=0 +lon_0=132 +lat_1=-18 +lat_2=-36 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs',
 		d3: { projection: 'geoAlbers', rotate: [-132, 0], parallels: [-18, -36] }
 	},
 	{
@@ -163,7 +163,7 @@ export const proj_countries: ProjCountry[] = [
 		projection: 'albers equal area',
 		bbox: [73.62, 18.16, 134.77, 53.56],
 		proj4:
-			'+proj=aea +lat_1=15 +lat_2=65 +lat_0=30 +lon_0=105 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs',
+			'+proj=aea +lat_1=15 +lat_2=65 +lat_0=30 +lon_0=95 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs',
 		d3: { projection: 'geoAlbers', rotate: [-105, 0], parallels: [15, 65] }
 	},
 	// Russia
