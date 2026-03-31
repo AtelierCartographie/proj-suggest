@@ -32,14 +32,22 @@ const { national, generic } = suggest_projections(bbox);
 
 console.log(national);
 // [
-//   { id: 'france', epsg: '2154', projection: 'lambert93',
-//     bbox: [-6, 41.2, 10.4, 51.6], proj4: '+proj=lcc ...', share: 0.93, ratio: 1.1, within: true }
+//   {
+//     id: 'france', epsg: '2154', projection: 'lambert93',
+//     bbox: [-6, 41.2, 10.4, 51.6],
+//     proj4: '+proj=lcc +lat_0=46.5 +lon_0=3 +lat_1=49 +lat_2=44 ...',
+//     d3: { projection: 'geoConicConformal', rotate: [-3, 0], parallels: [44, 49] },
+//     share: 0.93, ratio: 1.1, within: true
+//   }
 // ]
 
 console.log(generic);
 // [
-//   { id: 'albers_conic', name: 'Albers Conic', scale: ['region'], shape: 'round',
-//     equalarea: true, proj4: '+proj=aea +lon_0=2.5 +lat_1=47.67 ...' },
+//   {
+//     id: 'albers_conic', name: 'Albers Conic', scale: ['region'], shape: 'round', equalarea: true,
+//     proj4: { string: '+proj=aea +lon_0=2.5 +lat_1=47.67 +lat_2=44.33 +lat_0=46 ...' },
+//     d3: { projection: 'geoAlbers', rotate: [-2.5, 0], parallels: [44.33, 47.67] }
+//   },
 //   { id: 'lambert_conformal_conic', ... },
 //   { id: 'equidistant_conic', ... }
 // ]
@@ -102,13 +110,31 @@ interface BBoxValidation {
 	errors: string[];
 }
 
+/** Utilisation avec proj4js : `proj4(result.proj4.string, [lon, lat])` */
+interface Proj4Usage {
+	string: string; // Chaîne proj4 complète avec paramètres calculés depuis la bbox
+}
+
+/**
+ * Utilisation avec d3-geo / d3-geo-projection.
+ * Si `snippet` est présent, utiliser ce code à la place des paramètres individuels.
+ */
+interface D3Usage {
+	projection: string; // Nom de la fonction factory, ex: "geoAlbers", "geoOrthographic"
+	rotate?: [number, number] | [number, number, number]; // .rotate([λ, φ]) ou .rotate([λ, φ, γ])
+	center?: [number, number]; // .center([lon, lat])
+	parallels?: [number, number]; // .parallels([lat1, lat2])
+	snippet?: string; // Code de construction manuel (projections interrompues, etc.)
+}
+
 interface ResolvedProjection {
 	id: string;
 	name?: string;
 	scale: ScaleType[]; // 'world' | 'hemisphere' | 'region' | 'local'
 	shape: ShapeType; // 'rectangular' | 'round' | 'discontinuous' | 'rectangle'
 	equalarea?: boolean;
-	proj4: string; // Chaîne proj4 résolue avec les paramètres calculés
+	proj4: Proj4Usage | null; // null si proj4js ne supporte pas cette projection
+	d3: D3Usage | null; // null si pas d'équivalent natif d3
 }
 
 interface MatchedCountry {
@@ -116,8 +142,8 @@ interface MatchedCountry {
 	epsg: string;
 	projection: string;
 	bbox: BBox;
-	proj4: string;
-	rotate?: [number, number];
+	proj4: string; // Chaîne proj4 complète avec lon_0/lat_0 géographiquement corrects
+	d3: D3Usage; // Config d3-geo
 	share: number; // Part de la bbox pays couverte par l'intersection (0-1)
 	ratio: number; // Ratio de surface bbox référence / bbox pays
 	within: boolean; // La bbox référence est-elle entièrement contenue dans la bbox pays ?
@@ -335,9 +361,15 @@ if (!validation.valid) {
 }
 
 const { national, generic } = suggest_projections(france);
-// national → [{ id: 'france', epsg: '2154', projection: 'lambert93', share: ~0.93, ratio: ~1.1, within: true }]
-// generic  → Albers Conic, Lambert Conformal Conic, Equidistant Conic
-//            Centrées sur lon≈2.5, lat≈46, avec parallèles standard adaptés
+
+// Projections nationales : proj4 et d3 prêts à l'emploi
+console.log(national[0].proj4); // '+proj=lcc +lat_0=46.5 +lon_0=3 +lat_1=49 +lat_2=44 ...'
+console.log(national[0].d3); // { projection: 'geoConicConformal', rotate: [-3, 0], parallels: [44, 49] }
+
+// Projections génériques : résultats calibrés sur la bbox
+console.log(generic[0].id); // 'albers_conic'
+console.log(generic[0].proj4.string); // '+proj=aea +lon_0=2.5 +lat_0=46 +lat_1=44.33 +lat_2=47.67 ...'
+console.log(generic[0].d3); // { projection: 'geoAlbers', rotate: [-2.5, 0], parallels: [44.33, 47.67] }
 ```
 
 ### Exemple de validation détaillée
@@ -407,18 +439,60 @@ get_intersecting_countries(bbox);
 //   Utile pour comprendre pourquoi un pays est (ou n'est pas) retenu.
 ```
 
-### Utiliser la chaîne proj4 avec proj4js
+### Utiliser proj4js
 
 ```ts
 import proj4 from 'proj4';
 import { suggest_projections } from 'proj-suggest';
 
-const bbox: BBox = [-5, 41, 10, 51];
-const { generic } = suggest_projections(bbox);
+const bbox: BBox = [-20, 35, 30, 65]; // Europe
+const { generic, national } = suggest_projections(bbox);
 
-// Projeter un point avec la première suggestion
-const proj4string = generic[0].proj4;
-const [x, y] = proj4(proj4string).forward([2.35, 48.86]); // Paris
+// Projections génériques — proj4 est null pour les projections d3-only
+const first = generic.find((d) => d.proj4 !== null);
+if (first) {
+	const [x, y] = proj4(first.proj4.string).forward([2.35, 48.86]); // Paris
+}
+
+// Projections nationales — proj4 est toujours une string directement utilisable
+if (national.length > 0) {
+	const [x, y] = proj4(national[0].proj4).forward([2.35, 48.86]);
+}
+```
+
+### Utiliser d3-geo
+
+```ts
+import * as d3 from 'd3';
+import * as d3geo from 'd3-geo-projection';
+import { suggest_projections } from 'proj-suggest';
+
+const bbox: BBox = [-20, 35, 30, 65]; // Europe
+const { generic, national } = suggest_projections(bbox);
+
+// Projections génériques
+const suggestion = generic[0];
+if (suggestion.d3) {
+	const { projection, rotate, parallels, snippet } = suggestion.d3;
+
+	if (snippet) {
+		// Cas particulier : projection à construire manuellement (ex: mollweide_ocean)
+		// Évaluer ou afficher le snippet comme documentation de construction
+		console.log(snippet);
+	} else {
+		const factory = d3[projection] ?? d3geo[projection];
+		const proj = factory();
+		if (rotate) proj.rotate(rotate);
+		if (parallels) proj.parallels(parallels);
+	}
+}
+
+// Projections nationales — d3 est toujours présent
+const { projection, rotate, parallels } = national[0].d3;
+const factory = d3[projection] ?? d3geo[projection];
+const proj = factory();
+if (rotate) proj.rotate(rotate);
+if (parallels) proj.parallels(parallels);
 ```
 
 ## Développement
