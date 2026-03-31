@@ -12,6 +12,7 @@
 		"gis"
 	],
 	"scripts": {
+		"prepare": "tsc",
 		"build": "tsc && publint",
 		"prepublishOnly": "npm run build",
 		"check": "tsc --noEmit",
