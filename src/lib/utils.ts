@@ -159,6 +159,98 @@ export function get_bbox_centroid(bbox: BBox): [number, number] {
 	return [lon, lat];
 }
 
+/**
+ * Minimum angular separation (in degrees) between two bounding boxes.
+ *
+ * Returns `0` when the boxes touch or overlap. Longitude is treated as
+ * circular, so the gap is measured the short way around the globe and boxes
+ * straddling the antimeridian (`lon_min > lon_max`) are handled correctly.
+ *
+ * Used to decide whether two features belong to the same connected landmass
+ * (see {@link representative_bbox}).
+ */
+export function get_bbox_gap(bbox_1: BBox, bbox_2: BBox): number {
+	const lat_gap =
+		bbox_1[1] > bbox_2[3]
+			? bbox_1[1] - bbox_2[3]
+			: bbox_2[1] > bbox_1[3]
+				? bbox_2[1] - bbox_1[3]
+				: 0;
+	return Math.hypot(lon_gap(bbox_1, bbox_2), lat_gap);
+}
+
+/** Circular longitudinal gap (degrees) between two bboxes, 0 if they overlap. */
+function lon_gap(bbox_1: BBox, bbox_2: BBox): number {
+	// Unwrap each interval so its end ≥ its start (handles antimeridian crossing).
+	let [a0, , a1] = bbox_1;
+	let [b0, , b1] = bbox_2;
+	if (a1 < a0) a1 += 360;
+	if (b1 < b0) b1 += 360;
+	// Measure the gap in three rotations and keep the smallest (circularity).
+	const gap = (x0: number, x1: number, y0: number, y1: number) =>
+		x1 < y0 ? y0 - x1 : y1 < x0 ? x0 - y1 : 0;
+	return Math.min(gap(a0, a1, b0, b1), gap(a0 + 360, a1 + 360, b0, b1), gap(a0, a1, b0 + 360, b1 + 360));
+}
+
+/**
+ * Smallest bounding box enclosing all the given boxes.
+ *
+ * Longitude is handled on the circle: the frame (0–360° or −180–180°) that
+ * yields the narrowest box is chosen, so a cluster straddling the antimeridian
+ * produces a tight box returned with the `lon_min > lon_max` convention rather
+ * than a spurious near-global width.
+ *
+ * @throws if `boxes` is empty.
+ */
+export function union_bbox(boxes: BBox[]): BBox {
+	if (boxes.length === 0) throw new Error('union_bbox: no boxes provided');
+
+	// Candidate envelope in a given longitude frame (optionally shifting
+	// negative longitudes into 0–360 before unwrapping).
+	const envelope = (shift: boolean): { w: number; s: number; e: number; n: number } => {
+		let w = Infinity,
+			s = Infinity,
+			e = -Infinity,
+			n = -Infinity;
+		for (const b of boxes) {
+			let x0 = b[0];
+			let x1 = b[2];
+			if (shift) {
+				if (x0 < 0) x0 += 360;
+				if (x1 < 0) x1 += 360;
+			}
+			if (x1 < x0) x1 += 360; // antimeridian-crossing feature
+			w = Math.min(w, x0);
+			e = Math.max(e, x1);
+			s = Math.min(s, b[1]);
+			n = Math.max(n, b[3]);
+		}
+		return { w, s, e, n };
+	};
+
+	const a = envelope(false);
+	const b = envelope(true);
+	const pick = a.e - a.w <= b.e - b.w ? a : b;
+
+	// Bring lon_min into [−180, 180).
+	let { w, e } = pick;
+	while (w >= 180) {
+		w -= 360;
+		e -= 360;
+	}
+	while (w < -180) {
+		w += 360;
+		e += 360;
+	}
+	// If the box now crosses the antimeridian, express it with lon_min > lon_max.
+	const lon_max = e > 180 ? e - 360 : e;
+	return [round(w), round(pick.s), round(lon_max), round(pick.n)];
+}
+
+function round(n: number): number {
+	return +n.toFixed(6);
+}
+
 function to_radian(degree: number): number {
 	return (degree * Math.PI) / 180;
 }
