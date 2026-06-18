@@ -58,9 +58,15 @@ const { generic: genericOnly } = suggest_projections(bbox, { national: false });
 
 ## API
 
-### `suggest_projections(bbox: BBox, options?: SuggestOptions): ProjectionSuggestions`
+### `suggest_projections(bbox: BBox | BBox[], options?: SuggestOptions): ProjectionSuggestions`
 
 Point d'entrée principal. Retourne un objet structuré avec les projections nationales (prioritaires) et les projections génériques issues de l'arbre de décision.
+
+Accepte soit une bbox unique, soit **un tableau de bbox par feature** (une par entité). Dans ce dernier cas, les bbox sont d'abord réduites à une bbox représentative — les territoires détachés (Alaska, DOM-TOM…) qui gonfleraient artificiellement l'emprise sont écartés — avant la mise en correspondance. Le détail de la réduction est exposé sur le champ `reduced`. Voir [`representative_bbox`](#representative_bboxboxes-bbox-options-reduceoptions-representativebbox) et la section [Réduction multi-bbox](#réduction-multi-bbox).
+
+### `representative_bbox(boxes: BBox[], options?: ReduceOptions): RepresentativeBBox`
+
+Réduit un tableau de bbox par feature à une seule bbox représentative en écartant les territoires détachés mineurs. Utile lorsque la bbox globale d'un jeu de données est trompeuse à cause de territoires lointains (USA + Alaska/Hawaï/Porto Rico, France + DOM-TOM…).
 
 ### `suggest_generic_projections(bbox: BBox): ResolvedProjection[]`
 
@@ -96,13 +102,26 @@ Retourne tous les pays dont la bbox intersecte la bbox de référence, avec les 
 ```ts
 type BBox = [number, number, number, number]; // [lon_min, lat_min, lon_max, lat_max] en EPSG:4326
 
-interface SuggestOptions {
+interface SuggestOptions extends ReduceOptions {
 	national?: boolean; // Inclure les projections nationales (défaut: true)
 }
 
 interface ProjectionSuggestions {
 	national: MatchedCountry[]; // Projections nationales correspondantes (prioritaires)
 	generic: ResolvedProjection[]; // Projections génériques issues de l'arbre de décision
+	reduced?: RepresentativeBBox; // Présent uniquement si un tableau de bbox a été fourni
+}
+
+interface ReduceOptions {
+	detach_gap?: number; // Écart max (degrés) entre deux bbox d'une même masse terrestre (défaut: 3)
+	retain?: number; // Part minimale de l'aire à conserver dans le résultat (défaut: 0.85)
+}
+
+interface RepresentativeBBox {
+	bbox: BBox; // La bbox réduite, utilisée pour la suggestion
+	kept: number; // Nombre de features conservées
+	outliers: BBox[]; // Bbox des features écartées (territoires détachés)
+	trimmed: boolean; // false ⇒ bbox englobe tout (aucun écartement)
 }
 
 interface BBoxValidation {
@@ -343,6 +362,56 @@ Correspondance = ( share ≥ 0.75 ET ratio < 2 ) OU within
 | japan       | —           | Albers Equal Area            |
 | china       | ESRI:102025 | Albers Equal Area            |
 | russia      | 3576        | Lambert Azimuthal Equal Area |
+
+---
+
+## Réduction multi-bbox
+
+Une bbox unique est un proxy *lossy* de la géométrie. Pour un pays à territoires détachés, la bbox englobant **tout** sur-représente largement la masse principale et fait échouer la correspondance nationale.
+
+Le cas d'école : le shapefile `cb_2018_us_state_20m` (états des USA). Son emprise totale est `[-179.17, 17.91, 179.77, 71.35]` — large de ~358° de longitude, car les îles Aléoutiennes de l'Alaska franchissent l'antiméridien. `suggest_projections` la classerait à l'échelle « monde » et ne proposerait jamais la projection Albers des USA (EPSG:5070).
+
+Les formats spatiaux modernes (GeoParquet, FlatGeobuf, index R-tree de GeoPackage…) stockent déjà une bbox par feature comme proxy d'index spatial. En consommant ce tableau, `representative_bbox` retrouve la masse dominante sans toucher à la géométrie complète.
+
+### Algorithme
+
+0. **Antiméridien** — Les features dont la bbox fait plus de 180° de large enjambent la ligne de date ; leur étendue réelle est irrécupérable depuis les seuls extrêmes, elles sont donc écartées d'emblée (cas de l'Alaska).
+1. **Composantes connexes** — Deux features rejoignent la même masse terrestre quand l'écart entre leurs bbox est ≤ `detach_gap` (défaut 3°). Ce seuil physique unique regroupe une masse continue (entités adjacentes → écart nul) et absorbe les îles proches d'un détroit (la Corse, ~0,7° du continent), tout en isolant les territoires d'outre-mer (à des dizaines de degrés).
+2. **Écartement** — On garde la plus grosse composante (par aire sphérique de bbox) et on écarte les composantes détachées tant que leur aire cumulée reste sous le budget `1 − retain`. La pondération par aire classe correctement une grande métropole devant de petits territoires, même quand le jeu de données ne compte que quelques features.
+
+Un garde-fou court-circuite les données **réparties** : si aucune composante ne pèse au moins `retain` de l'aire totale, il n'y a pas de sujet dominant à extraire et rien n'est rogné (un planisphère multi-continents reste un planisphère).
+
+### Exemple
+
+```ts
+import { suggest_projections, representative_bbox } from 'proj-suggest';
+import type { BBox } from 'proj-suggest';
+
+// Une bbox par état/territoire (telle que fournie par un GeoParquet, FlatGeobuf…)
+const boxes: BBox[] = [
+	/* …, */ [-124.41, 32.53, -114.14, 42.01] /* Californie, …48 états contigus… */,
+	[-179.17, 51.22, 179.77, 71.35], // Alaska (franchit l'antiméridien)
+	[-160.25, 18.92, -154.81, 22.23], // Hawaï
+	[-67.96, 17.91, -65.22, 18.51] // Porto Rico
+];
+
+const { national, reduced } = suggest_projections(boxes);
+
+console.log(reduced);
+// {
+//   bbox: [-124.73, 24.5, -66.95, 49.38],  // ≈ CONUS (48 états contigus + DC)
+//   kept: 49,
+//   outliers: [ /* Hawaï, Porto Rico, Alaska */ ],
+//   trimmed: true
+// }
+
+console.log(national.some((d) => d.id === 'usa')); // true → Albers EPSG:5070
+
+// Réglage : seuil de détachement et part conservée
+representative_bbox(boxes, { detach_gap: 5, retain: 0.9 });
+```
+
+> **Performance.** Le binning des features est en O(n) ; le clustering des composantes est en O(m²) où `m` est le nombre de *cellules occupées* (≪ n) — les jeux denses comme les ~35 000 communes françaises se réduisent à un petit `m`. Pour des entrées éparses couvrant tout le globe à haute résolution, un index spatial sur les nœuds lèverait ce plafond (optimisation différée).
 
 ---
 
