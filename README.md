@@ -1,5 +1,16 @@
 # proj-suggest
 
+## English
+
+A dependency-free TypeScript library that suggests suitable map projections from a bounding box (bbox), including official national projections.
+
+The selection algorithm is an **independent reimplementation** of the cartographic decision tree published by Snyder (1987) and formalized by Šavrič et al. (2016).
+
+Created by: [Thomas Ansart — Atelier de cartographie de Sciences Po](https://www.sciencespo.fr/cartographie/)
+License: ISC
+
+## Français
+
 Bibliothèque TypeScript, sans dépendance, qui suggère des projections cartographiques adaptées à partir d'une bounding box (bbox), y compris des projections nationales officielles.
 
 L'algorithme de sélection est une **réimplémentation indépendante** de l'arbre de décision cartographique publié par Snyder (1987) et formalisé par Šavrič et al. (2016).
@@ -13,21 +24,21 @@ License: ISC
 npm install proj-suggest
 ```
 
-## Utilisation rapide
+## Quick usage
 
 ```ts
 import { suggest_projections, validate_bbox } from 'proj-suggest';
 import type { BBox } from 'proj-suggest';
 
-// Définir une bbox [lon_min, lat_min, lon_max, lat_max]
-const bbox: BBox = [-5, 41, 10, 51]; // France métropolitaine
+// Define a bbox [lon_min, lat_min, lon_max, lat_max]
+const bbox: BBox = [-5, 41, 10, 51]; // Metropolitan France
 
 const validation = validate_bbox(bbox);
 if (!validation.valid) {
-	throw new Error(`BBox invalide: ${validation.errors.join(' | ')}`);
+	throw new Error(`Invalid bbox: ${validation.errors.join(' | ')}`);
 }
 
-// Obtenir toutes les suggestions en un seul appel
+// Get all suggestions in a single call
 const { national, generic } = suggest_projections(bbox);
 
 console.log(national);
@@ -52,7 +63,7 @@ console.log(generic);
 //   { id: 'equidistant_conic', ... }
 // ]
 
-// Sans projections nationales
+// Without national projections
 const { generic: genericOnly } = suggest_projections(bbox, { national: false });
 ```
 
@@ -60,68 +71,68 @@ const { generic: genericOnly } = suggest_projections(bbox, { national: false });
 
 ### `suggest_projections(bbox: BBox | BBox[], options?: SuggestOptions): ProjectionSuggestions`
 
-Point d'entrée principal. Retourne un objet structuré avec les projections nationales (prioritaires) et les projections génériques issues de l'arbre de décision.
+Main entry point. Returns a structured object with the matching national projections (given priority) and the generic projections produced by the decision tree.
 
-Accepte soit une bbox unique, soit **un tableau de bbox par feature** (une par entité). Dans ce dernier cas, les bbox sont d'abord réduites à une bbox représentative — les territoires détachés (Alaska, DOM-TOM…) qui gonfleraient artificiellement l'emprise sont écartés — avant la mise en correspondance. Le détail de la réduction est exposé sur le champ `reduced`. Voir [`representative_bbox`](#representative_bboxboxes-bbox-options-reduceoptions-representativebbox) et la section [Réduction multi-bbox](#réduction-multi-bbox).
+Accepts either a single bbox or **an array of per-feature bboxes** (one per entity). In the latter case, the bboxes are first reduced to a single representative bbox — detached territories (Alaska, French overseas territories…) that would artificially inflate the extent are discarded — before matching takes place. The details of the reduction are exposed on the `reduced` field. See [`representative_bbox`](#representative_bboxboxes-bbox-options-reduceoptions-representativebbox) and the [Multi-bbox reduction](#multi-bbox-reduction) section.
 
 ### `representative_bbox(boxes: BBox[], options?: ReduceOptions): RepresentativeBBox`
 
-Réduit un tableau de bbox par feature à une seule bbox représentative en écartant les territoires détachés mineurs. Utile lorsque la bbox globale d'un jeu de données est trompeuse à cause de territoires lointains (USA + Alaska/Hawaï/Porto Rico, France + DOM-TOM…).
+Reduces an array of per-feature bboxes to a single representative bbox by discarding minor detached territories. Useful when a dataset's overall bbox is misleading because of far-flung territories (USA + Alaska/Hawaii/Puerto Rico, France + overseas territories…).
 
 ### `suggest_generic_projections(bbox: BBox): ResolvedProjection[]`
 
-Retourne uniquement les projections génériques suggérées pour la bbox donnée.
+Returns only the generic projections suggested for the given bbox.
 
 ### `match_national_projections(bbox: BBox): MatchedCountry[]`
 
-Retourne les pays dont la projection nationale correspond à la bbox de référence.
+Returns the countries whose national projection matches the reference bbox.
 
 ### `validate_bbox(bbox: BBox): BBoxValidation`
 
-Valide une bbox avant appel des fonctions de suggestion. Retourne un objet:
+Validates a bbox before calling the suggestion functions. Returns an object:
 
-- `valid`: `true` si la bbox est valide
-- `errors`: tableau de messages d'erreur détaillés
+- `valid`: `true` if the bbox is valid
+- `errors`: array of detailed error messages
 
-Contrôles effectués:
+Checks performed:
 
-- 4 valeurs finies (`number`, sans `NaN` ni `Infinity`)
-- `lon_min` et `lon_max` dans [−180, 180]
-- `lat_min` et `lat_max` dans [−90, 90]
+- 4 finite values (`number`, no `NaN` or `Infinity`)
+- `lon_min` and `lon_max` within [−180, 180]
+- `lat_min` and `lat_max` within [−90, 90]
 - `lat_min <= lat_max`
-- bbox non dégénérée (largeur et hauteur non nulles)
+- non-degenerate bbox (non-zero width and height)
 
-Note: `lon_min > lon_max` est autorisé et interprété comme un passage par l'antiméridien (±180°).
+Note: `lon_min > lon_max` is allowed and interpreted as crossing the antimeridian (±180°).
 
 ### `get_intersecting_countries(bbox: BBox): MatchedCountry[]`
 
-Retourne tous les pays dont la bbox intersecte la bbox de référence, avec les métriques d'intersection (`share`, `ratio`, `within`), sans appliquer de filtre de correspondance.
+Returns all countries whose bbox intersects the reference bbox, along with the intersection metrics (`share`, `ratio`, `within`), without applying any matching filter.
 
 ### Types
 
 ```ts
-type BBox = [number, number, number, number]; // [lon_min, lat_min, lon_max, lat_max] en EPSG:4326
+type BBox = [number, number, number, number]; // [lon_min, lat_min, lon_max, lat_max] in EPSG:4326
 
 interface SuggestOptions extends ReduceOptions {
-	national?: boolean; // Inclure les projections nationales (défaut: true)
+	national?: boolean; // Include national projections (default: true)
 }
 
 interface ProjectionSuggestions {
-	national: MatchedCountry[]; // Projections nationales correspondantes (prioritaires)
-	generic: ResolvedProjection[]; // Projections génériques issues de l'arbre de décision
-	reduced?: RepresentativeBBox; // Présent uniquement si un tableau de bbox a été fourni
+	national: MatchedCountry[]; // Matching national projections (given priority)
+	generic: ResolvedProjection[]; // Generic projections produced by the decision tree
+	reduced?: RepresentativeBBox; // Present only if an array of bboxes was provided
 }
 
 interface ReduceOptions {
-	detach_gap?: number; // Écart max (degrés) entre deux bbox d'une même masse terrestre (défaut: 3)
-	retain?: number; // Part minimale de l'aire à conserver dans le résultat (défaut: 0.85)
+	detach_gap?: number; // Max gap (degrees) between two bboxes belonging to the same landmass (default: 3)
+	retain?: number; // Minimum share of area to keep in the result (default: 0.85)
 }
 
 interface RepresentativeBBox {
-	bbox: BBox; // La bbox réduite, utilisée pour la suggestion
-	kept: number; // Nombre de features conservées
-	outliers: BBox[]; // Bbox des features écartées (territoires détachés)
-	trimmed: boolean; // false ⇒ bbox englobe tout (aucun écartement)
+	bbox: BBox; // The reduced bbox, used for the suggestion
+	kept: number; // Number of features kept
+	outliers: BBox[]; // Bboxes of the discarded features (detached territories)
+	trimmed: boolean; // false ⇒ bbox encompasses everything (nothing discarded)
 }
 
 interface BBoxValidation {
@@ -129,21 +140,21 @@ interface BBoxValidation {
 	errors: string[];
 }
 
-/** Utilisation avec proj4js : `proj4(result.proj4.string, [lon, lat])` */
+/** Usage with proj4js: `proj4(result.proj4.string, [lon, lat])` */
 interface Proj4Usage {
-	string: string; // Chaîne proj4 complète avec paramètres calculés depuis la bbox
+	string: string; // Full proj4 string with parameters computed from the bbox
 }
 
 /**
- * Utilisation avec d3-geo / d3-geo-projection.
- * Si `snippet` est présent, utiliser ce code à la place des paramètres individuels.
+ * Usage with d3-geo / d3-geo-projection.
+ * If `snippet` is present, use this code instead of the individual parameters.
  */
 interface D3Usage {
-	projection: string; // Nom de la fonction factory, ex: "geoAlbers", "geoOrthographic"
-	rotate?: [number, number] | [number, number, number]; // .rotate([λ, φ]) ou .rotate([λ, φ, γ])
+	projection: string; // Factory function name, e.g. "geoAlbers", "geoOrthographic"
+	rotate?: [number, number] | [number, number, number]; // .rotate([λ, φ]) or .rotate([λ, φ, γ])
 	center?: [number, number]; // .center([lon, lat])
 	parallels?: [number, number]; // .parallels([lat1, lat2])
-	snippet?: string; // Code de construction manuel (projections interrompues, etc.)
+	snippet?: string; // Manual construction code (interrupted projections, etc.)
 }
 
 interface ResolvedProjection {
@@ -152,8 +163,8 @@ interface ResolvedProjection {
 	scale: ScaleType[]; // 'world' | 'hemisphere' | 'region' | 'local'
 	shape: ShapeType; // 'rectangular' | 'round' | 'discontinuous' | 'rectangle'
 	equalarea?: boolean;
-	proj4: Proj4Usage | null; // null si proj4js ne supporte pas cette projection
-	d3: D3Usage | null; // null si pas d'équivalent natif d3
+	proj4: Proj4Usage | null; // null if proj4js does not support this projection
+	d3: D3Usage | null; // null if there is no native d3 equivalent
 }
 
 interface MatchedCountry {
@@ -161,187 +172,187 @@ interface MatchedCountry {
 	epsg: string;
 	projection: string;
 	bbox: BBox;
-	proj4: string; // Chaîne proj4 complète avec lon_0/lat_0 géographiquement corrects
-	d3: D3Usage; // Config d3-geo
-	share: number; // Part de la bbox pays couverte par l'intersection (0-1)
-	ratio: number; // Ratio de surface bbox référence / bbox pays
-	within: boolean; // La bbox référence est-elle entièrement contenue dans la bbox pays ?
+	proj4: string; // Full proj4 string with geographically correct lon_0/lat_0
+	d3: D3Usage; // d3-geo config
+	share: number; // Share of the country bbox covered by the intersection (0-1)
+	ratio: number; // Area ratio of reference bbox / country bbox
+	within: boolean; // Is the reference bbox entirely contained within the country bbox?
 }
 ```
 
-### Limites de `validate_bbox`
+### Limitations of `validate_bbox`
 
-`validate_bbox` vérifie uniquement la validité géométrique et numérique de la bbox. Certains cas restent hors de son périmètre:
+`validate_bbox` only checks the geometric and numeric validity of the bbox. Some cases remain outside its scope:
 
-- Bbox valide mais peu pertinente cartographiquement (ex: zone extrêmement petite)
-- Coordonnées en dehors de l'intention EPSG:4326 mais numériquement dans les plages autorisées
+- A valid bbox that is not very meaningful cartographically (e.g. an extremely small area)
+- Coordinates outside the intended EPSG:4326 usage but numerically within the allowed ranges
 
-Dans ces cas, la fonction de validation peut retourner `valid: true`, alors que les suggestions resteront techniquement calculables mais potentiellement peu utiles.
-
----
-
-## Projections génériques disponibles
-
-Pour les échelles hors `world`, la bibliothèque peut retourner les projections suivantes selon les caractéristiques de la bbox.
-
-| Projection                        | Surfaces égales | Échelle                     | Format                                                 | Forme         |
-| --------------------------------- | :-------------: | --------------------------- | ------------------------------------------------------ | ------------- |
-| Orthographic                      |                 | hémisphère                  | tous¹                                                  | ronde         |
-| Lambert Azimuthal Equal Area      |        ✓        | hémisphère · région         | hém. : tous¹ · rég. : carré, paysage                   | ronde         |
-| Azimuthal Equidistant             |                 | hémisphère · région         | hém. : tous¹ · rég. : paysage²                         | discontinue   |
-| Mercator                          |                 | hémisphère · région · local | hém. : tous³ · rég. : paysage⁴ · loc. : carré, paysage | rectangulaire |
-| Cylindrical Equal Area            |        ✓        | hémisphère · région         | hém. : tous³ · rég. : paysage⁴                         | rectangulaire |
-| Equirectangular                   |                 | hémisphère · région · local | hém. : tous³ · rég. : paysage⁴ · loc. : carré, paysage | rectangulaire |
-| Albers Conic                      |        ✓        | région                      | paysage⁵                                               | ronde         |
-| Lambert Conformal Conic           |                 | région                      | paysage⁵                                               | ronde         |
-| Equidistant Conic                 |                 | région                      | carré · paysage⁵                                       | ronde         |
-| Stereographic                     |                 | région                      | carré · paysage²                                       | ronde         |
-| Transverse Cylindrical Equal Area |        ✓        | région · local              | rég. : portrait · loc. : tous                          | rectangulaire |
-| Transverse Mercator               |                 | région · local              | rég. : portrait · loc. : tous                          | ronde         |
-| Cassini                           |                 | région                      | portrait                                               | ronde         |
-
-> ¹ Hors zone tropicale · uniquement si la bbox ≤ 180° de large pour Orthographic.
-> ² Zone polaire (centroïde |lat| > 75°).
-> ³ Zone entièrement dans les tropiques (|lat| < 23,44°).
-> ⁴ Zone équatoriale (centroïde |lat| < 15°) ou tropicale.
-> ⁵ Zone tempérée (hors équateur et hors zones polaires).
-
-> **Forme** : _ronde_ — contour en ovale ou cercle · _rectangulaire_ — carte en cadre plein · _discontinue_ — carte avec ruptures géographiques.
+In these cases, the validation function may return `valid: true`, even though the suggestions remain technically computable but potentially not very useful.
 
 ---
 
-## Algorithme de suggestion de projections
+## Available generic projections
 
-L'algorithme implémenté dans `suggest_generic_projections` suit un raisonnement en cascade qui part de la bbox fournie pour déterminer l'échelle, le ratio de forme, et la position géographique de la zone, puis sélectionne les projections les plus adaptées.
+For scales other than `world`, the library can return the following projections depending on the bbox's characteristics.
 
-### Étape 1 — Déterminer l'échelle
+| Projection                        | Equal area | Scale                     | Aspect ratio                                           | Shape         |
+| --------------------------------- | :--------: | -------------------------- | ------------------------------------------------------ | ------------- |
+| Orthographic                      |            | hemisphere                  | all¹                                                  | round         |
+| Lambert Azimuthal Equal Area      |     ✓      | hemisphere · region         | hem.: all¹ · reg.: square, landscape                   | round         |
+| Azimuthal Equidistant             |            | hemisphere · region         | hem.: all¹ · reg.: landscape²                         | discontinuous   |
+| Mercator                          |            | hemisphere · region · local | hem.: all³ · reg.: landscape⁴ · loc.: square, landscape | rectangular |
+| Cylindrical Equal Area            |     ✓      | hemisphere · region         | hem.: all³ · reg.: landscape⁴                         | rectangular |
+| Equirectangular                   |            | hemisphere · region · local | hem.: all³ · reg.: landscape⁴ · loc.: square, landscape | rectangular |
+| Albers Conic                      |     ✓      | region                      | landscape⁵                                               | round         |
+| Lambert Conformal Conic           |            | region                      | landscape⁵                                               | round         |
+| Equidistant Conic                 |            | region                      | square · landscape⁵                                       | round         |
+| Stereographic                     |            | region                      | square · landscape²                                       | round         |
+| Transverse Cylindrical Equal Area |     ✓      | region · local              | reg.: portrait · loc.: all                          | rectangular |
+| Transverse Mercator               |            | region · local              | reg.: portrait · loc.: all                          | round         |
+| Cassini                           |            | region                      | portrait                                               | round         |
 
-La surface sphérique de la bbox est calculée puis rapportée à la surface totale de la Terre (4π stéradians). Ce ratio, appelé `earth_share`, détermine l'échelle :
+> ¹ Outside the tropical zone · only if the bbox width ≤ 180° for Orthographic.
+> ² Polar zone (centroid |lat| > 75°).
+> ³ Zone entirely within the tropics (|lat| < 23.44°).
+> ⁴ Equatorial zone (centroid |lat| < 15°) or tropical.
+> ⁵ Temperate zone (outside the equator and outside polar zones).
 
-| `earth_share`   | Échelle        |
+> **Shape**: _round_ — oval or circular outline · _rectangular_ — map in a full frame · _discontinuous_ — map with geographic interruptions.
+
+---
+
+## Projection suggestion algorithm
+
+The algorithm implemented in `suggest_generic_projections` follows a cascading logic that starts from the provided bbox to determine the scale, the aspect ratio, and the geographic position of the area, then selects the most suitable projections.
+
+### Step 1 — Determine the scale
+
+The spherical area of the bbox is computed and compared to the total surface of the Earth (4π steradians). This ratio, called `earth_share`, determines the scale:
+
+| `earth_share`   | Scale          |
 | --------------- | -------------- |
 | ≥ 2/3 (~66 %)   | **world**      |
 | ≥ 1/6 (~17 %)   | **hemisphere** |
-| ≥ 1/200 (0,5 %) | **region**     |
+| ≥ 1/200 (0.5 %) | **region**     |
 | < 1/200         | **local**      |
 
-### Étape 2 — Déterminer le ratio de forme
+### Step 2 — Determine the aspect ratio
 
-Le ratio hauteur/largeur de la bbox (en degrés) classe la forme :
+The height/width ratio of the bbox (in degrees) classifies its shape:
 
-| Ratio (h/l)    | Type          |
+| Ratio (h/w)    | Type          |
 | -------------- | ------------- |
-| ≤ 0,8          | **landscape** |
-| ≥ 1,25         | **portrait**  |
-| entre les deux | **square**    |
+| ≤ 0.8          | **landscape** |
+| ≥ 1.25         | **portrait**  |
+| in between     | **square**    |
 
-### Étape 3 — Calculer les paramètres de centrage
+### Step 3 — Compute the centering parameters
 
-Pour toutes les échelles sauf `world`, le centroïde de la bbox est calculé. Les paramètres de projection sont :
+For every scale except `world`, the bbox centroid is computed. The projection parameters are:
 
-- **`lon`** : longitude du centroïde
-- **`lat`** : latitude du centroïde
-- **`lat_1`, `lat_2`** : parallèles standard, calculés symétriquement autour du centroïde
+- **`lon`**: longitude of the centroid
+- **`lat`**: latitude of the centroid
+- **`lat_1`, `lat_2`**: standard parallels, computed symmetrically around the centroid
 
-Le calcul des parallèles standard utilise un intervalle différent selon la position :
+The calculation of the standard parallels uses a different interval depending on the position:
 
-- **Zone polaire** (|latitude centroïde| > 75°) ou **zone équatoriale** (|latitude centroïde| < 15°) : l'intervalle est de **1/4** de la hauteur de la bbox
-- **Autres zones** : l'intervalle est de **1/6** de la hauteur de la bbox
+- **Polar zone** (|centroid latitude| > 75°) or **equatorial zone** (|centroid latitude| < 15°): the interval is **1/4** of the bbox height
+- **Other zones**: the interval is **1/6** of the bbox height
 
-### Étape 4 — Sélection en cascade selon échelle × forme × position
+### Step 4 — Cascading selection based on scale × shape × position
 
-La sélection des projections suit un arbre de décision combinant l'échelle et le ratio de forme. La position géographique (polaire, tropicale, équatoriale) affine le choix.
+The projection selection follows a decision tree combining scale and aspect ratio. Geographic position (polar, tropical, equatorial) refines the choice.
 
-#### Échelle `world`
+#### `world` scale
 
-Aucun paramètre de centrage n'est nécessaire. Toutes les projections mondiales disponibles sont retournées : Equal Earth, Bertin 1953, Mollweide interrompue, etc.
+No centering parameter is needed. All available world projections are returned: Equal Earth, Bertin 1953, Interrupted Mollweide, etc.
 
-#### Échelle `hemisphere`
+#### `hemisphere` scale
 
-Quel que soit le ratio de forme (`square`, `landscape`, `portrait`) :
+Regardless of the aspect ratio (`square`, `landscape`, `portrait`):
 
-- **Si la zone est entièrement dans les tropiques** (|lat_min| < 23,44° et |lat_max| < 23,44°) : la latitude de centrage est ramenée à 0° et les projections sélectionnées sont **Mercator**, **Cylindrical Equal Area**, **Equirectangular** — adaptées aux faibles déformations en zone équatoriale.
-- **Sinon** :
-  - Si la largeur est ≤ 180° : **Orthographic** est ajoutée (la bbox tient dans un hémisphère visible).
-  - Dans tous les cas : **Lambert Azimuthal Equal Area**, **Azimuthal Equidistant**.
+- **If the area lies entirely within the tropics** (|lat_min| < 23.44° and |lat_max| < 23.44°): the centering latitude is set to 0° and the selected projections are **Mercator**, **Cylindrical Equal Area**, **Equirectangular** — suited to low distortion in the equatorial zone.
+- **Otherwise**:
+  - If the width is ≤ 180°: **Orthographic** is added (the bbox fits within a visible hemisphere).
+  - In all cases: **Lambert Azimuthal Equal Area**, **Azimuthal Equidistant**.
 
-#### Échelle `region` — `square`
+#### `region` scale — `square`
 
-- Si proche des pôles (|lat centroïde| > 75°) : la latitude est ramenée à ±90°.
-- Si proche de l'équateur (|lat centroïde| < 15°) : la latitude est ramenée à 0°.
-- Projections : **Lambert Azimuthal Equal Area**, **Stereographic**, **Equidistant Conic**.
+- If close to the poles (|centroid lat| > 75°): the latitude is set to ±90°.
+- If close to the equator (|centroid lat| < 15°): the latitude is set to 0°.
+- Projections: **Lambert Azimuthal Equal Area**, **Stereographic**, **Equidistant Conic**.
 
-#### Échelle `region` — `landscape`
+#### `region` scale — `landscape`
 
-- **Proche des pôles** (|lat centroïde| > 75°) : latitude ramenée à ±90°, projections azimutales — **LAEA**, **Stereographic**, **Azimuthal Equidistant**.
-- **Équateur ou tropiques** (|lat centroïde| < 15° ou zone entièrement tropicale) : latitude ramenée à 0°, projections cylindriques — **Cylindrical Equal Area**, **Mercator**, **Equirectangular**.
-- **Zones tempérées** (cas par défaut) : projections coniques — **Albers Conic**, **Lambert Conformal Conic**, **Equidistant Conic**. Ces projections coniques sont adaptées aux zones de latitude intermédiaire avec une extension est-ouest.
+- **Close to the poles** (|centroid lat| > 75°): latitude set to ±90°, azimuthal projections — **LAEA**, **Stereographic**, **Azimuthal Equidistant**.
+- **Equator or tropics** (|centroid lat| < 15° or a zone entirely within the tropics): latitude set to 0°, cylindrical projections — **Cylindrical Equal Area**, **Mercator**, **Equirectangular**.
+- **Temperate zones** (default case): conic projections — **Albers Conic**, **Lambert Conformal Conic**, **Equidistant Conic**. These conic projections are well suited to mid-latitude zones with an east-west extent.
 
-#### Échelle `region` — `portrait`
+#### `region` scale — `portrait`
 
-- Projections transverses, adaptées aux zones avec une extension nord-sud : **Transverse Cylindrical Equal Area**, **Transverse Mercator**, **Cassini**.
+- Transverse projections, suited to areas with a north-south extent: **Transverse Cylindrical Equal Area**, **Transverse Mercator**, **Cassini**.
 
-#### Échelle `local` — `portrait`
+#### `local` scale — `portrait`
 
 - **Transverse Cylindrical Equal Area**, **Transverse Mercator**.
 
-#### Échelle `local` — `square` ou `landscape`
+#### `local` scale — `square` or `landscape`
 
-Pas de filtre spécifique sur les identifiants. Toutes les projections compatibles avec l'échelle `local` sont retournées (Equirectangular, Mercator, Transverse Mercator, Transverse CEA).
+No specific filter on identifiers. All projections compatible with the `local` scale are returned (Equirectangular, Mercator, Transverse Mercator, Transverse CEA).
 
-### Résumé de l'arbre de décision
+### Decision tree summary
 
 ```
 bbox
- ├── earth_share ≥ 2/3 → world → toutes les projections mondiales
+ ├── earth_share ≥ 2/3 → world → all world projections
  └── earth_share < 2/3
-      ├── centrage + parallèles standard calculés
+      ├── centering + standard parallels computed
       │
       ├── hemisphere (earth_share ≥ 1/6)
-      │    ├── zone tropicale → Mercator, CEA, Equirectangular (lat=0)
-      │    └── sinon → Orthographic (si ≤180°), LAEA, Azimuthal Equidistant
+      │    ├── tropical zone → Mercator, CEA, Equirectangular (lat=0)
+      │    └── otherwise → Orthographic (if ≤180°), LAEA, Azimuthal Equidistant
       │
       ├── region (earth_share ≥ 1/200)
       │    ├── square → LAEA, Stereographic, Equidistant Conic
       │    ├── landscape
-      │    │    ├── pôle → LAEA, Stereographic, Azimuthal Equidistant (lat=±90)
-      │    │    ├── tropiques → CEA, Mercator, Equirectangular (lat=0)
-      │    │    └── tempéré → Albers, Lambert CC, Equidistant Conic
+      │    │    ├── pole → LAEA, Stereographic, Azimuthal Equidistant (lat=±90)
+      │    │    ├── tropics → CEA, Mercator, Equirectangular (lat=0)
+      │    │    └── temperate → Albers, Lambert CC, Equidistant Conic
       │    └── portrait → Transverse CEA, Transverse Mercator, Cassini
       │
       └── local (earth_share < 1/200)
            ├── portrait → Transverse CEA, Transverse Mercator
-           └── square/landscape → toutes les projections locales
+           └── square/landscape → all local projections
 ```
 
 ---
 
-## Rapprochement avec les projections nationales
+## Matching against national projections
 
-L'algorithme de `match_national_projections` compare la bbox de référence avec les bbox de pays disposant d'une projection nationale officielle. Trois métriques sont calculées :
+The algorithm implemented in `match_national_projections` compares the reference bbox with the bboxes of countries that have an official national projection. Three metrics are computed:
 
-### Métriques
+### Metrics
 
-1. **`share`** — Part d'intersection : surface de l'intersection entre la bbox de référence et la bbox du pays, rapportée à la surface de la bbox du pays. Valeur entre 0 et 1. Un `share` de 0,9 signifie que 90 % de la bbox du pays est couverte par la bbox de référence.
+1. **`share`** — Intersection share: the area of the intersection between the reference bbox and the country bbox, relative to the area of the country bbox. A value between 0 and 1. A `share` of 0.9 means that 90% of the country's bbox is covered by the reference bbox.
 
-2. **`ratio`** — Ratio de surface : surface de la bbox de référence divisée par la surface de la bbox du pays. Un ratio de 1 signifie des surfaces identiques ; un ratio de 3 signifie que la bbox de référence fait 3 fois la taille de la bbox du pays.
+2. **`ratio`** — Area ratio: the area of the reference bbox divided by the area of the country bbox. A ratio of 1 means the areas are identical; a ratio of 3 means the reference bbox is 3 times the size of the country bbox.
 
-3. **`within`** — Inclusion : vrai si la bbox de référence est entièrement contenue dans la bbox du pays.
+3. **`within`** — Containment: true if the reference bbox is entirely contained within the country bbox.
 
-Toutes les surfaces sont calculées en coordonnées sphériques (stéradians) pour tenir compte de la convergence des méridiens.
+All areas are computed in spherical coordinates (steradians) to account for the convergence of meridians.
 
-### Critères de correspondance
+### Matching criteria
 
-Une projection nationale est considérée comme correspondante si :
+A national projection is considered a match if:
 
-- **(1) `share` ≥ 0,75** ET **(2) `ratio` < 2** — la bbox de référence couvre au moins 75 % du pays et ne fait pas plus de 2 fois sa taille.
-- **OU (3) `within` = true** — la bbox de référence est entièrement contenue dans la bbox du pays, quelle que soit sa taille.
+- **(1) `share` ≥ 0.75** AND **(2) `ratio` < 2** — the reference bbox covers at least 75% of the country and is no more than 2 times its size.
+- **OR (3) `within` = true** — the reference bbox is entirely contained within the country bbox, regardless of its size.
 
 ```
-Correspondance = ( share ≥ 0.75 ET ratio < 2 ) OU within
+Match = ( share ≥ 0.75 AND ratio < 2 ) OR within
 ```
 
-### Pays disponibles
+### Available countries
 
 | ID          | EPSG        | Projection                   |
 | ----------- | ----------- | ---------------------------- |
@@ -365,59 +376,59 @@ Correspondance = ( share ≥ 0.75 ET ratio < 2 ) OU within
 
 ---
 
-## Réduction multi-bbox
+## Multi-bbox reduction
 
-Une bbox unique est un proxy *lossy* de la géométrie. Pour un pays à territoires détachés, la bbox englobant **tout** sur-représente largement la masse principale et fait échouer la correspondance nationale.
+A single bbox is a *lossy* proxy for a geometry. For a country with detached territories, the bbox that encompasses **everything** vastly over-represents the main landmass and causes the national matching to fail.
 
-Le cas d'école : le shapefile `cb_2018_us_state_20m` (états des USA). Son emprise totale est `[-179.17, 17.91, 179.77, 71.35]` — large de ~358° de longitude, car les îles Aléoutiennes de l'Alaska franchissent l'antiméridien. `suggest_projections` la classerait à l'échelle « monde » et ne proposerait jamais la projection Albers des USA (EPSG:5070).
+The textbook case: the `cb_2018_us_state_20m` shapefile (US states). Its total extent is `[-179.17, 17.91, 179.77, 71.35]` — about 358° of longitude wide, because Alaska's Aleutian Islands cross the antimeridian. `suggest_projections` would classify it at "world" scale and would never suggest the US Albers projection (EPSG:5070).
 
-Les formats spatiaux modernes (GeoParquet, FlatGeobuf, index R-tree de GeoPackage…) stockent déjà une bbox par feature comme proxy d'index spatial. En consommant ce tableau, `representative_bbox` retrouve la masse dominante sans toucher à la géométrie complète.
+Modern spatial formats (GeoParquet, FlatGeobuf, GeoPackage R-tree index…) already store a per-feature bbox as a spatial index proxy. By consuming this array, `representative_bbox` recovers the dominant landmass without touching the full geometry.
 
-### Algorithme
+### Algorithm
 
-0. **Antiméridien** — Les features dont la bbox fait plus de 180° de large enjambent la ligne de date ; leur étendue réelle est irrécupérable depuis les seuls extrêmes, elles sont donc écartées d'emblée (cas de l'Alaska).
-1. **Composantes connexes** — Deux features rejoignent la même masse terrestre quand l'écart entre leurs bbox est ≤ `detach_gap` (défaut 3°). Ce seuil physique unique regroupe une masse continue (entités adjacentes → écart nul) et absorbe les îles proches d'un détroit (la Corse, ~0,7° du continent), tout en isolant les territoires d'outre-mer (à des dizaines de degrés).
-2. **Écartement** — On garde la plus grosse composante (par aire sphérique de bbox) et on écarte les composantes détachées tant que leur aire cumulée reste sous le budget `1 − retain`. La pondération par aire classe correctement une grande métropole devant de petits territoires, même quand le jeu de données ne compte que quelques features.
+0. **Antimeridian** — Features whose bbox is more than 180° wide cross the date line; their true extent cannot be recovered from the extremes alone, so they are discarded outright (the Alaska case).
+1. **Connected components** — Two features join the same landmass when the gap between their bboxes is ≤ `detach_gap` (default 3°). This single physical threshold groups a continuous landmass (adjacent entities → zero gap) and absorbs islands close to a strait (Corsica, ~0.7° from the mainland), while still isolating overseas territories (tens of degrees away).
+2. **Discarding** — The largest component (by spherical bbox area) is kept, and detached components are discarded as long as their cumulative area stays under the `1 − retain` budget. Weighting by area correctly ranks a large mainland ahead of small territories, even when the dataset only has a handful of features.
 
-Un garde-fou court-circuite les données **réparties** : si aucune composante ne pèse au moins `retain` de l'aire totale, il n'y a pas de sujet dominant à extraire et rien n'est rogné (un planisphère multi-continents reste un planisphère).
+A safeguard short-circuits **scattered** data: if no component accounts for at least `retain` of the total area, there is no dominant subject to extract, and nothing is trimmed (a multi-continent world map remains a world map).
 
-### Exemple
+### Example
 
 ```ts
 import { suggest_projections, representative_bbox } from 'proj-suggest';
 import type { BBox } from 'proj-suggest';
 
-// Une bbox par état/territoire (telle que fournie par un GeoParquet, FlatGeobuf…)
+// One bbox per state/territory (as provided by a GeoParquet, FlatGeobuf…)
 const boxes: BBox[] = [
-	/* …, */ [-124.41, 32.53, -114.14, 42.01] /* Californie, …48 états contigus… */,
-	[-179.17, 51.22, 179.77, 71.35], // Alaska (franchit l'antiméridien)
-	[-160.25, 18.92, -154.81, 22.23], // Hawaï
-	[-67.96, 17.91, -65.22, 18.51] // Porto Rico
+	/* …, */ [-124.41, 32.53, -114.14, 42.01] /* California, …48 contiguous states… */,
+	[-179.17, 51.22, 179.77, 71.35], // Alaska (crosses the antimeridian)
+	[-160.25, 18.92, -154.81, 22.23], // Hawaii
+	[-67.96, 17.91, -65.22, 18.51] // Puerto Rico
 ];
 
 const { national, reduced } = suggest_projections(boxes);
 
 console.log(reduced);
 // {
-//   bbox: [-124.73, 24.5, -66.95, 49.38],  // ≈ CONUS (48 états contigus + DC)
+//   bbox: [-124.73, 24.5, -66.95, 49.38],  // ≈ CONUS (48 contiguous states + DC)
 //   kept: 49,
-//   outliers: [ /* Hawaï, Porto Rico, Alaska */ ],
+//   outliers: [ /* Hawaii, Puerto Rico, Alaska */ ],
 //   trimmed: true
 // }
 
 console.log(national.some((d) => d.id === 'usa')); // true → Albers EPSG:5070
 
-// Réglage : seuil de détachement et part conservée
+// Tuning: detachment threshold and retained share
 representative_bbox(boxes, { detach_gap: 5, retain: 0.9 });
 ```
 
-> **Performance.** Le binning des features est en O(n) ; le clustering des composantes est en O(m²) où `m` est le nombre de *cellules occupées* (≪ n) — les jeux denses comme les ~35 000 communes françaises se réduisent à un petit `m`. Pour des entrées éparses couvrant tout le globe à haute résolution, un index spatial sur les nœuds lèverait ce plafond (optimisation différée).
+> **Performance.** Binning the features runs in O(n); clustering the components runs in O(m²), where `m` is the number of *occupied cells* (≪ n) — dense datasets such as the ~35,000 French communes reduce to a small `m`. For sparse inputs covering the whole globe at high resolution, a spatial index over the nodes would lift this ceiling (a deferred optimization).
 
 ---
 
-## Exemples
+## Examples
 
-### Suggestion pour la France métropolitaine
+### Suggestion for metropolitan France
 
 ```ts
 import { suggest_projections, validate_bbox } from 'proj-suggest';
@@ -426,22 +437,22 @@ const france: BBox = [-5, 41, 10, 51];
 
 const validation = validate_bbox(france);
 if (!validation.valid) {
-	throw new Error(`BBox invalide: ${validation.errors.join(' | ')}`);
+	throw new Error(`Invalid bbox: ${validation.errors.join(' | ')}`);
 }
 
 const { national, generic } = suggest_projections(france);
 
-// Projections nationales : proj4 et d3 prêts à l'emploi
+// National projections: proj4 and d3 ready to use
 console.log(national[0].proj4); // '+proj=lcc +lat_0=46.5 +lon_0=3 +lat_1=49 +lat_2=44 ...'
 console.log(national[0].d3); // { projection: 'geoConicConformal', rotate: [-3, 0], parallels: [44, 49] }
 
-// Projections génériques : résultats calibrés sur la bbox
+// Generic projections: results calibrated on the bbox
 console.log(generic[0].id); // 'albers_conic'
 console.log(generic[0].proj4.string); // '+proj=aea +lon_0=2.5 +lat_0=46 +lat_1=44.33 +lat_2=47.67 ...'
 console.log(generic[0].d3); // { projection: 'geoAlbers', rotate: [-2.5, 0], parallels: [44.33, 47.67] }
 ```
 
-### Exemple de validation détaillée
+### Detailed validation example
 
 ```ts
 import { validate_bbox } from 'proj-suggest';
@@ -458,44 +469,44 @@ if (!result.valid) {
 }
 ```
 
-### Suggestion pour le monde entier
+### Suggestion for the whole world
 
 ```ts
 const world: BBox = [-180, -90, 180, 90];
 
 suggest_projections(world);
-// → generic : Equal Earth, Equirectangular, Mercator, Bertin 1953, Gall-Peters, Times,
+// → generic: Equal Earth, Equirectangular, Mercator, Bertin 1953, Gall-Peters, Times,
 //   Bonne, Atlantis, Mollweide Interrupted, Mollweide Interrupted Oceans, LAEA
 ```
 
-### Suggestion pour une zone polaire
+### Suggestion for a polar area
 
 ```ts
 const arctic: BBox = [-180, 75, 180, 90];
 
 suggest_projections(arctic);
-// → generic : LAEA (lat=90), Stereographic (lat=90), Azimuthal Equidistant (lat=90)
+// → generic: LAEA (lat=90), Stereographic (lat=90), Azimuthal Equidistant (lat=90)
 ```
 
-### Suggestion pour une zone tropicale allongée est-ouest
+### Suggestion for a tropical area elongated east-west
 
 ```ts
 const tropics: BBox = [-30, -10, 50, 10];
 
 suggest_projections(tropics);
-// → generic : Mercator (lat=0), Cylindrical Equal Area (lat=0), Equirectangular (lat=0)
+// → generic: Mercator (lat=0), Cylindrical Equal Area (lat=0), Equirectangular (lat=0)
 ```
 
-### Suggestion pour une zone en portrait (allongée nord-sud)
+### Suggestion for a portrait-oriented area (elongated north-south)
 
 ```ts
 const chile: BBox = [-76, -56, -66, -17];
 
 suggest_projections(chile);
-// → generic : Transverse Cylindrical Equal Area, Transverse Mercator, Cassini
+// → generic: Transverse Cylindrical Equal Area, Transverse Mercator, Cassini
 ```
 
-### Vérifier l'intersection sans filtrer
+### Checking intersection without filtering
 
 ```ts
 import { get_intersecting_countries } from 'proj-suggest';
@@ -503,12 +514,12 @@ import { get_intersecting_countries } from 'proj-suggest';
 const bbox: BBox = [0, 45, 12, 55];
 
 get_intersecting_countries(bbox);
-// → Tous les pays dont la bbox intersecte [0, 45, 12, 55],
-//   avec share, ratio et within calculés pour chaque pays.
-//   Utile pour comprendre pourquoi un pays est (ou n'est pas) retenu.
+// → All countries whose bbox intersects [0, 45, 12, 55],
+//   with share, ratio and within computed for each country.
+//   Useful for understanding why a country is (or isn't) matched.
 ```
 
-### Utiliser proj4js
+### Using proj4js
 
 ```ts
 import proj4 from 'proj4';
@@ -517,19 +528,19 @@ import { suggest_projections } from 'proj-suggest';
 const bbox: BBox = [-20, 35, 30, 65]; // Europe
 const { generic, national } = suggest_projections(bbox);
 
-// Projections génériques — proj4 est null pour les projections d3-only
+// Generic projections — proj4 is null for d3-only projections
 const first = generic.find((d) => d.proj4 !== null);
 if (first) {
 	const [x, y] = proj4(first.proj4.string).forward([2.35, 48.86]); // Paris
 }
 
-// Projections nationales — proj4 est toujours une string directement utilisable
+// National projections — proj4 is always a directly usable string
 if (national.length > 0) {
 	const [x, y] = proj4(national[0].proj4).forward([2.35, 48.86]);
 }
 ```
 
-### Utiliser d3-geo
+### Using d3-geo
 
 ```ts
 import * as d3 from 'd3';
@@ -539,14 +550,14 @@ import { suggest_projections } from 'proj-suggest';
 const bbox: BBox = [-20, 35, 30, 65]; // Europe
 const { generic, national } = suggest_projections(bbox);
 
-// Projections génériques
+// Generic projections
 const suggestion = generic[0];
 if (suggestion.d3) {
 	const { projection, rotate, parallels, snippet } = suggestion.d3;
 
 	if (snippet) {
-		// Cas particulier : projection à construire manuellement (ex: mollweide_ocean)
-		// Évaluer ou afficher le snippet comme documentation de construction
+		// Special case: a projection that must be built manually (e.g. mollweide_ocean)
+		// Evaluate or display the snippet as construction documentation
 		console.log(snippet);
 	} else {
 		const factory = d3[projection] ?? d3geo[projection];
@@ -556,7 +567,7 @@ if (suggestion.d3) {
 	}
 }
 
-// Projections nationales — d3 est toujours présent
+// National projections — d3 is always present
 const { projection, rotate, parallels } = national[0].d3;
 const factory = d3[projection] ?? d3geo[projection];
 const proj = factory();
@@ -564,13 +575,13 @@ if (rotate) proj.rotate(rotate);
 if (parallels) proj.parallels(parallels);
 ```
 
-## Développement
+## Development
 
 ```bash
 pnpm install
-pnpm dev       # Serveur de développement avec playground interactif
-pnpm test      # Tests unitaires (vitest)
-pnpm package   # Construire la bibliothèque
+pnpm dev       # Development server with an interactive playground
+pnpm test      # Unit tests (vitest)
+pnpm package   # Build the library
 ```
 
 ## References
@@ -582,6 +593,6 @@ The projection selection algorithm is based on the decision tree published by:
 
 The online tool [Projection Wizard](https://projectionwizard.org) by Bojan Šavrič served as an inspiration. This library is an **independent reimplementation** of the published decision tree: the code was written from scratch in TypeScript as a framework-agnostic developer library and an original national-projection matching module.
 
-## Licence
+## License
 
 ISC

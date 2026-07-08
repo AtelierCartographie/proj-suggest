@@ -3,6 +3,15 @@
 	"version": "0.0.1",
 	"description": "Suggest map projections based on a bounding box, including national projections",
 	"license": "ISC",
+	"author": "Thomas Ansart — Atelier de cartographie de Sciences Po (https://www.sciencespo.fr/cartographie/)",
+	"homepage": "https://github.com/AtelierCartographie/proj-suggest#readme",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/AtelierCartographie/proj-suggest.git"
+	},
+	"bugs": {
+		"url": "https://github.com/AtelierCartographie/proj-suggest/issues"
+	},
 	"keywords": [
 		"projection",
 		"map",
@@ -11,6 +20,23 @@
 		"proj4",
 		"gis"
 	],
+	"type": "module",
+	"sideEffects": false,
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		}
+	},
+	"types": "./dist/index.d.ts",
+	"files": [
+		"dist",
+		"!dist/**/*.test.*",
+		"!dist/**/*.spec.*"
+	],
+	"engines": {
+		"node": ">=18"
+	},
 	"scripts": {
 		"prepare": "tsc",
 		"build": "tsc && publint",
@@ -20,23 +46,13 @@
 		"lint": "prettier --check .",
 		"format": "prettier --write ."
 	},
-	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"default": "./dist/index.js"
-		}
+	"publishConfig": {
+		"access": "public"
 	},
-	"files": [
-		"dist",
-		"!dist/**/*.test.*",
-		"!dist/**/*.spec.*"
-	],
 	"devDependencies": {
 		"prettier": "^3.8.1",
 		"publint": "^0.3.18",
 		"typescript": "^5.9.3",
 		"vitest": "^4.1.0"
-	},
-	"types": "./dist/index.d.ts",
-	"type": "module"
+	}
 }
