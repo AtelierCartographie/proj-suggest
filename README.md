@@ -21,14 +21,14 @@ License: ISC
 ## Installation
 
 ```bash
-npm install proj-suggest
+npm install @ateliercartographie/proj-suggest
 ```
 
 ## Quick usage
 
 ```ts
-import { suggest_projections, validate_bbox } from 'proj-suggest';
-import type { BBox } from 'proj-suggest';
+import { suggest_projections, validate_bbox } from '@ateliercartographie/proj-suggest';
+import type { BBox } from '@ateliercartographie/proj-suggest';
 
 // Define a bbox [lon_min, lat_min, lon_max, lat_max]
 const bbox: BBox = [-5, 41, 10, 51]; // Metropolitan France
@@ -395,8 +395,8 @@ A safeguard short-circuits **scattered** data: if no component accounts for at l
 ### Example
 
 ```ts
-import { suggest_projections, representative_bbox } from 'proj-suggest';
-import type { BBox } from 'proj-suggest';
+import { suggest_projections, representative_bbox } from '@ateliercartographie/proj-suggest';
+import type { BBox } from '@ateliercartographie/proj-suggest';
 
 // One bbox per state/territory (as provided by a GeoParquet, FlatGeobuf…)
 const boxes: BBox[] = [
@@ -431,7 +431,7 @@ representative_bbox(boxes, { detach_gap: 5, retain: 0.9 });
 ### Suggestion for metropolitan France
 
 ```ts
-import { suggest_projections, validate_bbox } from 'proj-suggest';
+import { suggest_projections, validate_bbox } from '@ateliercartographie/proj-suggest';
 
 const france: BBox = [-5, 41, 10, 51];
 
@@ -455,7 +455,7 @@ console.log(generic[0].d3); // { projection: 'geoAlbers', rotate: [-2.5, 0], par
 ### Detailed validation example
 
 ```ts
-import { validate_bbox } from 'proj-suggest';
+import { validate_bbox } from '@ateliercartographie/proj-suggest';
 
 const invalidBbox = [10, 60, 10, 40] as const;
 const result = validate_bbox(invalidBbox as [number, number, number, number]);
@@ -509,7 +509,7 @@ suggest_projections(chile);
 ### Checking intersection without filtering
 
 ```ts
-import { get_intersecting_countries } from 'proj-suggest';
+import { get_intersecting_countries } from '@ateliercartographie/proj-suggest';
 
 const bbox: BBox = [0, 45, 12, 55];
 
@@ -523,7 +523,7 @@ get_intersecting_countries(bbox);
 
 ```ts
 import proj4 from 'proj4';
-import { suggest_projections } from 'proj-suggest';
+import { suggest_projections } from '@ateliercartographie/proj-suggest';
 
 const bbox: BBox = [-20, 35, 30, 65]; // Europe
 const { generic, national } = suggest_projections(bbox);
@@ -545,7 +545,7 @@ if (national.length > 0) {
 ```ts
 import * as d3 from 'd3';
 import * as d3geo from 'd3-geo-projection';
-import { suggest_projections } from 'proj-suggest';
+import { suggest_projections } from '@ateliercartographie/proj-suggest';
 
 const bbox: BBox = [-20, 35, 30, 65]; // Europe
 const { generic, national } = suggest_projections(bbox);

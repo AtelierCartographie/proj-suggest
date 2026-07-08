@@ -1,5 +1,5 @@
 {
-	"name": "proj-suggest",
+	"name": "@ateliercartographie/proj-suggest",
 	"version": "0.0.1",
 	"description": "Suggest map projections based on a bounding box, including national projections",
 	"license": "ISC",
