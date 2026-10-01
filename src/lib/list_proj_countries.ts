@@ -3,6 +3,11 @@ import type { D3Usage } from './list_proj_suggestions.js';
 
 export interface ProjCountry {
 	id: string;
+	/**
+	 * Registry code: EPSG number (`'2154'`) or `AUTHORITY:code` for another
+	 * registry (`'ESRI:102025'`). Empty string when the projection has no
+	 * registered code (e.g. `japan`, `spain`).
+	 */
 	epsg: string;
 	projection: string;
 	bbox: BBox;
@@ -100,6 +105,33 @@ export const proj_countries: ProjCountry[] = [
 		bbox: [5.87, 47.27, 15.04, 55.06],
 		proj4: '+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs',
 		d3: { projection: 'geoTransverseMercator', rotate: [-9, 0] }
+	},
+	// Spain: Lambert conic conformal mandated by Real Decreto 1071/2007 (art. 5) for
+	// maps at 1:500,000 and smaller, with the parameters set by the IGN for the
+	// Atlas Nacional de España. No EPSG code. The Canary Islands have their own
+	// tangent cone and are excluded from the mainland bbox, which would otherwise
+	// span northern Morocco.
+	{
+		id: 'spain',
+		epsg: '',
+		projection: 'lambert conic conformal',
+		bbox: [-9.31, 35.26, 4.33, 43.8],
+		proj4:
+			'+proj=lcc +lat_0=40 +lon_0=-3 +lat_1=42.8333333333333 +lat_2=37.1166666666667 +x_0=600000 +y_0=600000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs',
+		d3: {
+			projection: 'geoConicConformal',
+			rotate: [3, 0],
+			parallels: [37.1166666666667, 42.8333333333333]
+		}
+	},
+	{
+		id: 'canary_islands',
+		epsg: '',
+		projection: 'lambert conic conformal',
+		bbox: [-18.17, 27.63, -13.33, 29.42],
+		proj4:
+			'+proj=lcc +lat_0=28.5 +lon_0=-16 +lat_1=28.5 +x_0=300000 +y_0=300000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs',
+		d3: { projection: 'geoConicConformal', rotate: [16, 0], parallels: [28.5, 28.5] }
 	},
 	// Americas
 	{
