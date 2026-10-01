@@ -6,6 +6,7 @@ import {
 	validate_bbox
 } from './lib/index.js';
 import type { BBox } from './lib/index.js';
+import { proj_countries } from './lib/list_proj_countries.js';
 
 describe('suggest_projections', () => {
 	it('returns both national and generic for France bbox', () => {
@@ -184,5 +185,19 @@ describe('validate_bbox', () => {
 		const result = validate_bbox([0, 200, 0, -200]);
 		expect(result.valid).toBe(false);
 		expect(result.errors.length).toBeGreaterThan(1);
+	});
+});
+
+describe('proj_countries', () => {
+	it('d3 rotate[0] matches -lon_0 of the proj4 string', () => {
+		const with_lon_0 = proj_countries.filter((d) => /\+lon_0=/.test(d.proj4));
+		expect(with_lon_0.length).toBeGreaterThan(0);
+		for (const d of with_lon_0) {
+			const lon_0 = Number(d.proj4.match(/\+lon_0=(-?[\d.]+)/)![1]);
+			const rotate_lon = d.d3.rotate?.[0];
+			expect(rotate_lon, d.id).toBeDefined();
+			// tolerance covers rounded entries (e.g. belgium, switzerland)
+			expect(Math.abs(rotate_lon! + lon_0), d.id).toBeLessThanOrEqual(0.05);
+		}
 	});
 });

@@ -164,7 +164,7 @@ export const proj_countries: ProjCountry[] = [
 		bbox: [73.62, 18.16, 134.77, 53.56],
 		proj4:
 			'+proj=aea +lat_1=15 +lat_2=65 +lat_0=30 +lon_0=95 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs',
-		d3: { projection: 'geoAlbers', rotate: [-105, 0], parallels: [15, 65] }
+		d3: { projection: 'geoAlbers', rotate: [-95, 0], parallels: [15, 65] }
 	},
 	// Russia
 	{
