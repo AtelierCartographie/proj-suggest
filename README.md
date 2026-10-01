@@ -169,7 +169,7 @@ interface ResolvedProjection {
 
 interface MatchedCountry {
 	id: string;
-	epsg: string;
+	epsg: string; // EPSG code ('2154'), 'AUTHORITY:code' ('ESRI:102025'), or '' when unregistered
 	projection: string;
 	bbox: BBox;
 	proj4: string; // Full proj4 string with geographically correct lon_0/lat_0
@@ -354,25 +354,36 @@ Match = ( share ≥ 0.75 AND ratio < 2 ) OR within
 
 ### Available countries
 
-| ID          | EPSG        | Projection                   |
-| ----------- | ----------- | ---------------------------- |
-| eu          | 3035        | Lambert Azimuthal Equal Area |
-| france      | 2154        | Lambert 93                   |
-| uk          | 27700       | Transverse Mercator          |
-| ireland     | 2157        | Transverse Mercator          |
-| switzerland | 2056        | Swiss Oblique Mercator       |
-| brazil      | 10857       | Albers Equal Area            |
-| belgium     | 31370       | Lambert Conic Conformal      |
-| netherlands | 28992       | Stereographic                |
-| germany     | 25832       | Transverse Mercator (UTM 32) |
-| usa         | 5070        | Albers Equal Area            |
-| canada      | 3347        | Lambert Conic Conformal      |
-| mexico      | 6372        | Lambert Conic Conformal      |
-| australia   | 9473        | Albers Equal Area            |
-| india       | 7755        | Lambert Conic Conformal      |
-| japan       | —           | Albers Equal Area            |
-| china       | ESRI:102025 | Albers Equal Area            |
-| russia      | 3576        | Lambert Azimuthal Equal Area |
+| ID             | EPSG        | Projection                   |
+| -------------- | ----------- | ---------------------------- |
+| eu             | 3035        | Lambert Azimuthal Equal Area |
+| france         | 2154        | Lambert 93                   |
+| uk             | 27700       | Transverse Mercator          |
+| ireland        | 2157        | Transverse Mercator          |
+| switzerland    | 2056        | Swiss Oblique Mercator       |
+| brazil         | 10857       | Albers Equal Area            |
+| belgium        | 31370       | Lambert Conic Conformal      |
+| netherlands    | 28992       | Stereographic                |
+| germany        | 25832       | Transverse Mercator (UTM 32) |
+| spain          | —           | Lambert Conic Conformal      |
+| canary_islands | —           | Lambert Conic Conformal      |
+| usa            | 5070        | Albers Equal Area            |
+| canada         | 3347        | Lambert Conic Conformal      |
+| mexico         | 6372        | Lambert Conic Conformal      |
+| australia      | 9473        | Albers Equal Area            |
+| india          | 7755        | Lambert Conic Conformal      |
+| japan          | —           | Albers Equal Area            |
+| china          | ESRI:102025 | Albers Equal Area            |
+| russia         | 3576        | Lambert Azimuthal Equal Area |
+
+`—`: the projection has no registered code; `epsg` is then an empty string.
+
+**Spain** — Lambert conic conformal on ETRS89, mandated by Real Decreto 1071/2007 (art. 5) for maps at 1:500,000 and smaller, with the parameters set by the IGN for the _Atlas Nacional de España_ (J. J. Alonso, [_Proyecciones cartográficas en los mapas del Atlas Nacional de España_](https://www.ign.es/web/resources/docs/IGNCnig/ProyeccionesMapasANE.pdf), IGN, 2014):
+
+- `spain` — mainland, Balearic Islands, Ceuta and Melilla: origin 40° N 3° W, standard parallels 42° 50′ N and 37° 07′ N, false easting and northing 600,000 m.
+- `canary_islands` — tangent cone at 28° 30′ N, central meridian 16° W, false easting and northing 300,000 m.
+
+The Canary Islands are kept out of the `spain` bbox: including them would stretch it over northern Morocco. A dataset covering all of Spain matches `spain` when passed as per-feature bboxes (the islands are discarded as a detached territory, see [Multi-bbox reduction](#multi-bbox-reduction)); a dataset covering only the Canaries matches `canary_islands`.
 
 ---
 

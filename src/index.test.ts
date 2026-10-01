@@ -122,6 +122,101 @@ describe('match_national_projections', () => {
 	});
 });
 
+describe('match_national_projections — Spain', () => {
+	// Mainland + Balearics + Ceuta and Melilla, Canary Islands excluded (Khartis basemaps bbox).
+	const spain: BBox = [-9.3015, 35.2655, 4.3278, 43.7924];
+	const canaries: BBox = [-18.16, 27.64, -13.34, 29.42];
+
+	it('matches Spain for the mainland bbox, with the IGN (ANE) Lambert conic conformal', () => {
+		const results = match_national_projections(spain);
+		const match = results.find((d) => d.id === 'spain');
+		expect(match).toBeDefined();
+		expect(match!.within).toBe(true);
+		// Must stay identical to ESPAGNE_PROJ4 in khartis-basemaps (lib/espagne-metadata.sh).
+		expect(match!.proj4).toBe(
+			'+proj=lcc +lat_0=40 +lon_0=-3 +lat_1=42.8333333333333 +lat_2=37.1166666666667 +x_0=600000 +y_0=600000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs'
+		);
+		// No EPSG code for this projection.
+		expect(match!.epsg).toBe('');
+		expect(match!.d3).toEqual({
+			projection: 'geoConicConformal',
+			rotate: [3, 0], // lon_0 = -3 → rotate[0] = +3
+			parallels: [37.1166666666667, 42.8333333333333]
+		});
+		expect(results.some((d) => d.id === 'canary_islands')).toBe(false);
+	});
+
+	it('matches Spain for a single region (Galicia)', () => {
+		const galicia: BBox = [-9.3, 41.8, -6.73, 43.79];
+		expect(match_national_projections(galicia).map((d) => d.id)).toContain('spain');
+	});
+
+	it('matches the Canary Islands on their own tangent cone, not mainland Spain', () => {
+		const results = match_national_projections(canaries);
+		const ids = results.map((d) => d.id);
+		expect(ids).toContain('canary_islands');
+		expect(ids).not.toContain('spain');
+		const match = results.find((d) => d.id === 'canary_islands')!;
+		// Must stay identical to CANARIAS_PROJ4 in khartis-basemaps (lib/espagne-metadata.sh).
+		expect(match.proj4).toBe(
+			'+proj=lcc +lat_0=28.5 +lon_0=-16 +lat_1=28.5 +x_0=300000 +y_0=300000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs'
+		);
+		expect(match.epsg).toBe('');
+		expect(match.d3).toEqual({
+			projection: 'geoConicConformal',
+			rotate: [16, 0],
+			parallels: [28.5, 28.5]
+		});
+	});
+
+	it('matches the Canary Islands for a single island (Tenerife)', () => {
+		const tenerife: BBox = [-16.92, 27.99, -16.12, 28.59];
+		expect(match_national_projections(tenerife).map((d) => d.id)).toContain('canary_islands');
+	});
+
+	it('does not suggest Spain for mainland Portugal', () => {
+		const portugal: BBox = [-9.53, 36.96, -6.19, 42.15];
+		expect(match_national_projections(portugal).map((d) => d.id)).not.toContain('spain');
+	});
+
+	it('does not suggest Spain or the Canary Islands for Morocco', () => {
+		const morocco: BBox = [-13.17, 27.66, -0.99, 35.92];
+		const morocco_with_western_sahara: BBox = [-17.1, 20.77, -0.99, 35.92];
+		for (const bbox of [morocco, morocco_with_western_sahara]) {
+			const ids = match_national_projections(bbox).map((d) => d.id);
+			expect(ids).not.toContain('spain');
+			expect(ids).not.toContain('canary_islands');
+		}
+	});
+
+	it('does not suggest Spain for metropolitan France', () => {
+		const france: BBox = [-5, 41, 10, 51];
+		expect(match_national_projections(france).map((d) => d.id)).not.toContain('spain');
+	});
+
+	it('suggests Spain for per-feature bboxes including the Canary Islands', () => {
+		// The single bbox spanning the Canaries is too large to match…
+		const with_canaries: BBox = [-18.16, 27.64, 4.33, 43.79];
+		expect(match_national_projections(with_canaries).map((d) => d.id)).not.toContain('spain');
+		// …but the multi-bbox reduction discards them as a detached territory.
+		const boxes: BBox[] = [
+			[-9.3, 41.8, -6.73, 43.79], // Galicia
+			[-7.5, 38.0, -1.0, 42.0], // Castile
+			[-7.53, 36.0, -1.63, 38.73], // Andalusia
+			[0.16, 40.52, 3.33, 42.86], // Catalonia
+			[1.15, 38.64, 4.33, 40.09], // Balearic Islands
+			[-5.38, 35.87, -5.27, 35.92], // Ceuta
+			[-2.98, 35.26, -2.92, 35.32], // Melilla
+			canaries
+		];
+		const result = suggest_projections(boxes);
+		expect(result.reduced?.outliers).toHaveLength(1);
+		const ids = result.national.map((d) => d.id);
+		expect(ids).toContain('spain');
+		expect(ids).not.toContain('canary_islands');
+	});
+});
+
 describe('validate_bbox', () => {
 	it('accepts a valid bbox', () => {
 		const result = validate_bbox([-5, 41, 10, 51]);
