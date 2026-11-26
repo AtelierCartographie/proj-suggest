@@ -372,6 +372,7 @@ Match = ( share ≥ 0.75 AND ratio < 2 ) OR within
 | belgium        | 31370       | Lambert Conic Conformal      |
 | netherlands    | 28992       | Stereographic                |
 | germany        | 25832       | Transverse Mercator (UTM 32) |
+| italy          | 7794        | Transverse Mercator          |
 | spain          | —           | Lambert Conic Conformal      |
 | canary_islands | —           | Lambert Conic Conformal      |
 | usa            | 5070        | Albers Equal Area            |
@@ -391,6 +392,8 @@ Match = ( share ≥ 0.75 AND ratio < 2 ) OR within
 - `canary_islands` — tangent cone at 28° 30′ N, central meridian 16° W, false easting and northing 300,000 m.
 
 The Canary Islands are kept out of the `spain` bbox: including them would stretch it over northern Morocco. A dataset covering all of Spain matches `spain` when passed as per-feature bboxes (the islands are discarded as a detached territory, see [Multi-bbox reduction](#multi-bbox-reduction)); a dataset covering only the Canaries matches `canary_islands`.
+
+**Italy** — the IGM "Fuso Italia" (RDN2008 / Italy zone, EPSG:7794): a single transverse Mercator zone on 12° E, scale factor 0.9985, false easting 7,000,000 m, introduced by the Istituto Geografico Militare to map the whole country without the discontinuity between UTM zones 32 and 33. The bbox covers the mainland, Sardinia, Sicily and the Pelagie Islands; small neighbours that fall inside it (San Marino, Vatican City, Slovenia, Malta) match `italy` through `within`.
 
 ---
 

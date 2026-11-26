@@ -110,6 +110,18 @@ export const proj_countries: ProjCountry[] = [
 		proj4: '+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs',
 		d3: { projection: 'geoTransverseMercator', rotate: [-9, 0] }
 	},
+	// Italy: "Fuso Italia" of the IGM (RDN2008 / Italy zone, EPSG:7794), a single
+	// transverse Mercator zone on 12° E introduced to map the whole country without
+	// the UTM 32/33 split. bbox includes Sardinia, Sicily and the Pelagie Islands.
+	{
+		id: 'italy',
+		epsg: '7794',
+		projection: 'transverse mercator',
+		bbox: [6.62, 35.49, 18.53, 47.1],
+		proj4:
+			'+proj=tmerc +lat_0=0 +lon_0=12 +k=0.9985 +x_0=7000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs',
+		d3: { projection: 'geoTransverseMercator', rotate: [-12, 0] }
+	},
 	// Spain: Lambert conic conformal mandated by Real Decreto 1071/2007 (art. 5) for
 	// maps at 1:500,000 and smaller, with the parameters set by the IGN for the
 	// Atlas Nacional de España. No EPSG code. The Canary Islands have their own

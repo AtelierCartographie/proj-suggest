@@ -262,6 +262,50 @@ describe('match_national_projections — Spain', () => {
 	});
 });
 
+describe('match_national_projections — Italy', () => {
+	// Mainland, Sardinia, Sicily and the Pelagie Islands (Khartis basemaps bbox, ISTAT 2026).
+	const italy: BBox = [6.6266, 35.4929, 18.5204, 47.0918];
+
+	it('matches Italy for the national bbox, with the IGM Fuso Italia', () => {
+		const results = match_national_projections(italy);
+		const match = results.find((d) => d.id === 'italy');
+		expect(match).toBeDefined();
+		expect(match!.within).toBe(true);
+		// Must stay identical to ITALIE_PROJ4 in khartis-basemaps (lib/italie-metadata.sh).
+		expect(match!.proj4).toBe(
+			'+proj=tmerc +lat_0=0 +lon_0=12 +k=0.9985 +x_0=7000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs'
+		);
+		expect(match!.epsg).toBe('7794');
+		expect(match!.d3).toEqual({ projection: 'geoTransverseMercator', rotate: [-12, 0] });
+		expect(results.some((d) => d.id === 'switzerland')).toBe(false);
+	});
+
+	it('matches Italy for a single region (Sicily, Apulia)', () => {
+		const sicily: BBox = [12.42, 36.64, 15.65, 38.32];
+		const apulia: BBox = [14.93, 39.79, 18.52, 42.23];
+		for (const bbox of [sicily, apulia]) {
+			expect(match_national_projections(bbox).map((d) => d.id)).toContain('italy');
+		}
+	});
+
+	it('does not suggest Italy for Switzerland, Austria or Slovenia', () => {
+		const switzerland: BBox = [5.96, 45.82, 10.49, 47.81];
+		const austria: BBox = [9.53, 46.37, 17.16, 49.02];
+		const slovenia: BBox = [13.38, 45.42, 16.61, 46.88];
+		for (const bbox of [switzerland, austria]) {
+			expect(match_national_projections(bbox).map((d) => d.id)).not.toContain('italy');
+		}
+		// Slovenia lies inside the Italian bbox: `within` makes it match, like any
+		// small neighbour fully inside a country bbox (cf. Malta, Corsica).
+		expect(match_national_projections(slovenia).map((d) => d.id)).toContain('italy');
+	});
+
+	it('does not suggest Italy for metropolitan France', () => {
+		const france: BBox = [-5, 41, 10, 51];
+		expect(match_national_projections(france).map((d) => d.id)).not.toContain('italy');
+	});
+});
+
 describe('validate_bbox', () => {
 	it('accepts a valid bbox', () => {
 		const result = validate_bbox([-5, 41, 10, 51]);
