@@ -361,28 +361,56 @@ Match = ( share ≥ 0.75 AND ratio < 2 ) OR within
 
 ### Available countries
 
-| ID             | EPSG        | Projection                   |
-| -------------- | ----------- | ---------------------------- |
-| eu             | 3035        | Lambert Azimuthal Equal Area |
-| france         | 2154        | Lambert 93                   |
-| uk             | 27700       | Transverse Mercator          |
-| ireland        | 2157        | Transverse Mercator          |
-| switzerland    | 2056        | Swiss Oblique Mercator       |
-| brazil         | 10857       | Albers Equal Area            |
-| belgium        | 31370       | Lambert Conic Conformal      |
-| netherlands    | 28992       | Stereographic                |
-| germany        | 25832       | Transverse Mercator (UTM 32) |
-| italy          | 7794        | Transverse Mercator          |
-| spain          | —           | Lambert Conic Conformal      |
-| canary_islands | —           | Lambert Conic Conformal      |
-| usa            | 5070        | Albers Equal Area            |
-| canada         | 3347        | Lambert Conic Conformal      |
-| mexico         | 6372        | Lambert Conic Conformal      |
-| australia      | 9473        | Albers Equal Area            |
-| india          | 7755        | Lambert Conic Conformal      |
-| japan          | —           | Albers Equal Area            |
-| china          | ESRI:102025 | Albers Equal Area            |
-| russia         | 3576        | Lambert Azimuthal Equal Area |
+| ID                    | EPSG        | Projection                    |
+| --------------------- | ----------- | ----------------------------- |
+| eu                    | 3035        | Lambert Azimuthal Equal Area  |
+| france                | 2154        | Lambert 93                    |
+| guadeloupe            | 5490        | Transverse Mercator (UTM 20N) |
+| martinique            | 5490        | Transverse Mercator (UTM 20N) |
+| french_guiana         | 2972        | Transverse Mercator (UTM 22N) |
+| reunion               | 2975        | Transverse Mercator (UTM 40S) |
+| mayotte               | 4471        | Transverse Mercator (UTM 38S) |
+| saint_pierre_miquelon | 4467        | Transverse Mercator (UTM 21N) |
+| uk                    | 27700       | Transverse Mercator           |
+| ireland               | 2157        | Transverse Mercator           |
+| switzerland           | 2056        | Swiss Oblique Mercator        |
+| brazil                | 10857       | Albers Equal Area             |
+| belgium               | 31370       | Lambert Conic Conformal       |
+| netherlands           | 28992       | Stereographic                 |
+| germany               | 25832       | Transverse Mercator (UTM 32)  |
+| italy                 | 7794        | Transverse Mercator           |
+| portugal              | 3763        | Transverse Mercator           |
+| austria               | 3416        | Lambert Conic Conformal       |
+| poland                | 2180        | Transverse Mercator           |
+| denmark               | 25832       | Transverse Mercator (UTM 32)  |
+| norway                | 25833       | Transverse Mercator (UTM 33)  |
+| sweden                | 3006        | Transverse Mercator (UTM 33)  |
+| finland               | 3067        | Transverse Mercator (UTM 35)  |
+| iceland               | 8088        | Lambert Conic Conformal       |
+| estonia               | 3301        | Lambert Conic Conformal       |
+| latvia                | 3059        | Transverse Mercator           |
+| lithuania             | 3346        | Transverse Mercator           |
+| luxembourg            | 2169        | Transverse Mercator           |
+| slovenia              | 3794        | Transverse Mercator           |
+| croatia               | 3765        | Transverse Mercator           |
+| greece                | 2100        | Transverse Mercator           |
+| romania               | 3844        | Oblique Stereographic         |
+| spain                 | —           | Lambert Conic Conformal       |
+| canary_islands        | —           | Lambert Conic Conformal       |
+| usa                   | 5070        | Albers Equal Area             |
+| alaska                | 3338        | Albers Equal Area             |
+| hawaii                | ESRI:102007 | Albers Equal Area             |
+| canada                | 3347        | Lambert Conic Conformal       |
+| mexico                | 6372        | Lambert Conic Conformal       |
+| australia             | 9473        | Albers Equal Area             |
+| india                 | 7755        | Lambert Conic Conformal       |
+| japan                 | —           | Albers Equal Area             |
+| china                 | ESRI:102025 | Albers Equal Area             |
+| new_zealand           | 2193        | Transverse Mercator           |
+| south_korea           | 5179        | Transverse Mercator           |
+| taiwan                | 3826        | Transverse Mercator           |
+| israel                | 2039        | Transverse Mercator           |
+| russia                | 3576        | Lambert Azimuthal Equal Area  |
 
 `—`: the projection has no registered code; `epsg` is then an empty string.
 
@@ -394,6 +422,12 @@ Match = ( share ≥ 0.75 AND ratio < 2 ) OR within
 The Canary Islands are kept out of the `spain` bbox: including them would stretch it over northern Morocco. A dataset covering all of Spain matches `spain` when passed as per-feature bboxes (the islands are discarded as a detached territory, see [Multi-bbox reduction](#multi-bbox-reduction)); a dataset covering only the Canaries matches `canary_islands`.
 
 **Italy** — the IGM "Fuso Italia" (RDN2008 / Italy zone, EPSG:7794): a single transverse Mercator zone on 12° E, scale factor 0.9985, false easting 7,000,000 m, introduced by the Istituto Geografico Militare to map the whole country without the discontinuity between UTM zones 32 and 33. The bbox covers the mainland, Sardinia, Sicily and the Pelagie Islands; small neighbours that fall inside it (San Marino, Vatican City, Slovenia, Malta) match `italy` through `within`.
+
+**Bboxes** are land extents of the territory (Eurostat GISCO 2024), with remote islands left out where they have their own projection or would distort the box: Portugal is mainland only (the Azores and Madeira use UTM 26/28), New Zealand leaves out the Chatham and outlying islands, Taiwan leaves out Kinmen and Matsu, Hawaii covers the main islands. Denmark, Norway, Sweden and Finland are covered without Greenland, the Faroe Islands or Svalbard.
+
+**French overseas departments** use the IGN UTM projections, as in the France composite of khartis-basemaps; Guadeloupe and Martinique share RGAF09 / UTM 20N. **Alaska** and **Hawaii** use the Albers insets of the USA composite (Alaska Albers, EPSG:3338, and ESRI:102007). The Alaska bbox crosses the antimeridian.
+
+A small territory that lies entirely inside a larger country bbox also matches that country through `within` (Luxembourg and Belgium → `france`, Slovenia → `italy`, French Guiana → `brazil`, Saint-Pierre-et-Miquelon → `canada`, the Baltic states and Romania → `russia`, South Korea and Taiwan → `china`); its own projection is listed alongside.
 
 ---
 

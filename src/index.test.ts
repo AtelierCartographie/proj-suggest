@@ -307,6 +307,103 @@ describe('match_national_projections — Italy', () => {
 	});
 });
 
+describe('match_national_projections — official national grids', () => {
+	// [id, EPSG, land bbox of the territory (GISCO 2024, remote islands excluded)]
+	const cases: [string, string, BBox][] = [
+		['portugal', '3763', [-9.522, 36.971, -6.194, 42.154]],
+		['austria', '3416', [9.531, 46.372, 17.161, 49.019]],
+		['poland', '2180', [14.127, 49.003, 24.142, 54.832]],
+		['denmark', '25832', [8.078, 54.564, 15.155, 57.743]],
+		['norway', '25833', [4.572, 57.96, 31.162, 71.172]],
+		['sweden', '3006', [10.983, 55.339, 24.156, 69.06]],
+		['finland', '3067', [19.254, 59.764, 31.579, 70.09]],
+		['iceland', '8088', [-24.479, 63.295, -13.512, 66.564]],
+		['estonia', '3301', [21.773, 57.513, 28.206, 59.688]],
+		['latvia', '3059', [20.973, 55.678, 28.235, 58.082]],
+		['lithuania', '3346', [20.954, 53.899, 26.835, 56.445]],
+		['luxembourg', '2169', [5.741, 49.449, 6.526, 50.183]],
+		['slovenia', '3794', [13.378, 45.426, 16.597, 46.875]],
+		['croatia', '3765', [13.504, 42.413, 19.443, 46.551]],
+		['greece', '2100', [19.373, 34.81, 29.648, 41.747]],
+		['romania', '3844', [20.264, 43.62, 29.695, 48.26]],
+		['guadeloupe', '5490', [-61.811, 15.83, -61.013, 16.505]],
+		['martinique', '5490', [-61.229, 14.399, -60.813, 14.877]],
+		['french_guiana', '2972', [-54.6, 2.118, -51.624, 5.748]],
+		['reunion', '2975', [55.217, -21.387, 55.835, -20.874]],
+		['mayotte', '4471', [45.015, -12.995, 45.296, -12.638]],
+		['saint_pierre_miquelon', '4467', [-56.408, 46.755, -56.119, 47.134]],
+		['alaska', '3338', [172.481, 51.218, -130.007, 71.371]],
+		['hawaii', 'ESRI:102007', [-160.554, 18.914, -154.809, 22.228]],
+		['new_zealand', '2193', [166.442, -47.283, 178.543, -34.123]],
+		['south_korea', '5179', [124.607, 33.108, 130.923, 38.615]],
+		['taiwan', '3826', [119.32, 21.9, 122.0, 25.29]],
+		['israel', '2039', [34.267, 29.491, 35.68, 33.284]]
+	];
+
+	it.each(cases)('matches %s (EPSG %s) for its territory', (id, epsg, bbox) => {
+		const match = match_national_projections(bbox).find((d) => d.id === id);
+		expect(match).toBeDefined();
+		expect(match!.within).toBe(true);
+		expect(match!.epsg).toBe(epsg);
+	});
+
+	it('UTM entries are rotated to their central meridian in d3', () => {
+		for (const d of proj_countries.filter((d) => d.proj4.startsWith('+proj=utm'))) {
+			const zone = Number(d.proj4.match(/\+zone=(\d+)/)![1]);
+			expect(d.d3.projection, d.id).toBe('geoTransverseMercator');
+			expect(d.d3.rotate, d.id).toEqual([183 - zone * 6, 0]);
+		}
+	});
+
+	it('French overseas departments use the same proj4 strings as the khartis-basemaps presets', () => {
+		const proj4 = (id: string) => proj_countries.find((d) => d.id === id)!.proj4;
+		const utm = (zone: string) =>
+			`+proj=utm +zone=${zone} +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs`;
+		expect(proj4('guadeloupe')).toBe(utm('20'));
+		expect(proj4('martinique')).toBe(utm('20'));
+		expect(proj4('saint_pierre_miquelon')).toBe(utm('21'));
+		expect(proj4('french_guiana')).toBe(utm('22'));
+		expect(proj4('mayotte')).toBe(utm('38 +south'));
+		expect(proj4('reunion')).toBe(utm('40 +south'));
+	});
+
+	it('keeps neighbouring countries apart', () => {
+		const ids = (bbox: BBox) => match_national_projections(bbox).map((d) => d.id);
+		const spain: BBox = [-9.3015, 35.2655, 4.3278, 43.7924];
+		const germany: BBox = [5.87, 47.27, 15.04, 55.06];
+		const sweden: BBox = [10.983, 55.339, 24.156, 69.06];
+		const finland: BBox = [19.254, 59.764, 31.579, 70.09];
+		const denmark: BBox = [8.078, 54.564, 15.155, 57.743];
+		const austria: BBox = [9.531, 46.372, 17.161, 49.019];
+		const guadeloupe: BBox = [-61.811, 15.83, -61.013, 16.505];
+		const reunion: BBox = [55.217, -21.387, 55.835, -20.874];
+		expect(ids(spain)).not.toContain('portugal');
+		expect(ids(germany)).not.toContain('denmark');
+		expect(ids(germany)).not.toContain('austria');
+		expect(ids(denmark)).not.toContain('germany');
+		expect(ids(austria)).not.toContain('germany');
+		expect(ids(sweden)).not.toContain('norway');
+		expect(ids(sweden)).not.toContain('finland');
+		expect(ids(finland)).not.toContain('sweden');
+		expect(ids(finland)).not.toContain('norway');
+		expect(ids(guadeloupe)).not.toContain('martinique');
+		expect(ids(reunion)).not.toContain('mayotte');
+	});
+
+	it('Alaska and Hawaii are not suggested for the contiguous United States', () => {
+		const ids = match_national_projections([-124.85, 24.55, -66.88, 49.38]).map((d) => d.id);
+		expect(ids).toContain('usa');
+		expect(ids).not.toContain('alaska');
+		expect(ids).not.toContain('hawaii');
+	});
+
+	it('Alaska matches a bbox cut at the antimeridian (Aleutians east of 180° dropped)', () => {
+		const ids = match_national_projections([-180, 51.2, -130, 71.4]).map((d) => d.id);
+		expect(ids).toContain('alaska');
+		expect(ids).not.toContain('canada');
+	});
+});
+
 describe('bbox intersection across the antimeridian', () => {
 	it('measures the overlap of a box crossing the antimeridian', () => {
 		// Two 20°-wide boxes sharing the 10° west of the antimeridian.
