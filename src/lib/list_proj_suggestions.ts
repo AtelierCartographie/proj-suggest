@@ -22,20 +22,31 @@ export interface Proj4Usage {
 }
 
 /**
- * Configuration to use this projection with d3-geo (or d3-geo-projection).
- * `projection` is the factory function name (e.g. `"geoAlbers"`, `"geoOrthographic"`).
- * Parameters map directly to d3 method calls:
- * - `rotate`    → `.rotate([λ, φ])`
+ * Configuration to use this projection with d3-geo, d3-geo-projection or
+ * d3-geo-polygon. `projection` is the factory function name (e.g. `"geoAlbers"`,
+ * `"geoOrthographic"`). Parameters map directly to d3 method calls, to apply in
+ * this order:
+ * - `rotate`    → `.rotate([λ, φ])` or `.rotate([λ, φ, γ])`
  * - `center`    → `.center([lon, lat])`
- * - `parallels` → `.parallels([lat1, lat2])`
+ * - `parallels` → `.parallels([lat1, lat2])` (conic projections)
+ * - `parallel`  → `.parallel(lat)` (single-parallel projections: cylindrical equal area, Bonne…)
+ * - `angle`     → `.angle(deg)` (post-projection rotation, used for transverse aspects)
+ *
+ * Factories are spread over three packages: `d3-geo` (Albers, Mercator,
+ * orthographic…), `d3-geo-projection` (Bertin, Times, cylindrical equal area,
+ * Bonne, interrupted Mollweide…) and `d3-geo-polygon` (Imago, Airocean).
  */
 export interface D3Usage {
-	/** d3 factory function name, e.g. `"geoAlbers"`. From `d3-geo` or `d3-geo-projection`. */
+	/** d3 factory function name, e.g. `"geoAlbers"`. From `d3-geo`, `d3-geo-projection` or `d3-geo-polygon`. */
 	projection: string;
 	/** `.rotate([λ, φ])` or `.rotate([λ, φ, γ])` for oblique rotations. */
 	rotate?: [number, number] | [number, number, number];
 	center?: [number, number];
 	parallels?: [number, number];
+	/** `.parallel(lat)` — standard parallel of single-parallel projections (d3 has no `.parallels` on these). */
+	parallel?: number;
+	/** `.angle(deg)` — post-projection rotation, e.g. `-90` for a transverse aspect built with a 3-axis `rotate`. */
+	angle?: number;
 	/**
 	 * For projections that require custom setup beyond standard parameters
 	 * (e.g. interrupted projections built with `geoInterrupt()`). When present,
@@ -99,7 +110,7 @@ export const projections: Projection[] = [
 		scale: ['world'],
 		shape: 'rectangular',
 		_proj4: () => `+proj=cea +lat_ts=45 ${end_proj}`,
-		_d3: () => ({ projection: 'geoCylindricalEqualArea', parallels: [45, 45] })
+		_d3: () => ({ projection: 'geoCylindricalEqualArea', parallel: 45 })
 	},
 	{
 		id: 'times',
@@ -139,8 +150,9 @@ export const projections: Projection[] = [
 		name: 'Atlantis',
 		scale: ['world'],
 		shape: 'round',
-		_proj4: () =>
-			`+proj=ob_tran +o_proj=moll +o_lat_p=0 +o_lon_p=0 +o_lon_c=30 +o_lat_c=-45 +o_alpha=90 ${end_proj}`,
+		// Transverse Mollweide centred on 30° W 45° N: the new pole lies on the
+		// equator at 60° E. Equivalent to the d3 rotation below (checked against PROJ).
+		_proj4: () => `+proj=ob_tran +o_proj=moll +o_lon_p=-45 +o_lat_p=0 +lon_0=-120 ${end_proj}`,
 		_d3: () => ({ projection: 'geoMollweide', rotate: [30, -45, 90] })
 	},
 	{
@@ -149,7 +161,7 @@ export const projections: Projection[] = [
 		scale: ['world'],
 		shape: 'round',
 		_proj4: () => `+proj=bonne +lat_1=45 ${end_proj}`,
-		_d3: () => ({ projection: 'geoBonne', parallels: [45, 45] })
+		_d3: () => ({ projection: 'geoBonne', parallel: 45 })
 	},
 	{
 		id: 'airocean',
@@ -249,7 +261,11 @@ export const projections: Projection[] = [
 		shape: 'rectangle',
 		equalarea: true,
 		_proj4: ({ lon = 0 } = {}) => `+proj=cea +lon_0=${lon} +lat_ts=0 ${end_proj}`,
-		_d3: ({ lon = 0 } = {}) => ({ projection: 'geoCylindricalEqualArea', rotate: [-lon, 0] })
+		_d3: ({ lon = 0 } = {}) => ({
+			projection: 'geoCylindricalEqualArea',
+			rotate: [-lon, 0],
+			parallel: 0
+		})
 	},
 	{
 		id: 'transverse_cylindrical_equal_area',
@@ -258,7 +274,15 @@ export const projections: Projection[] = [
 		shape: 'rectangle',
 		equalarea: true,
 		_proj4: ({ lon = 0 } = {}) => `+proj=tcea +lon_0=${lon} ${end_proj}`,
-		_d3: ({ lon = 0 } = {}) => ({ projection: 'geoTransverseMercator', rotate: [-lon, 0] })
+		// d3 has no transverse cylindrical equal-area factory: rotate the normal
+		// aspect (tangent at the equator) by 90° around the centre so the central
+		// meridian becomes the line of tangency, then turn the output upright.
+		_d3: ({ lon = 0 } = {}) => ({
+			projection: 'geoCylindricalEqualArea',
+			rotate: [-lon, 0, 90],
+			parallel: 0,
+			angle: -90
+		})
 	},
 
 	// Conformal
@@ -310,7 +334,7 @@ export const projections: Projection[] = [
 	{
 		id: 'azimuthal_equidistant',
 		name: 'Azimuthal Equidistant',
-		scale: ['hemisphere'],
+		scale: ['hemisphere', 'region'],
 		shape: 'discontinuous',
 		_proj4: ({ lon = 0, lat = 0 } = {}) =>
 			`+proj=aeqd +lon_0=${lon} +lat_0=${lat} ${end_proj}`,
@@ -338,6 +362,12 @@ export const projections: Projection[] = [
 		scale: ['region'],
 		shape: 'round',
 		_proj4: ({ lon = 0 } = {}) => `+proj=cass +lon_0=${lon} ${end_proj}`,
-		_d3: ({ lon = 0 } = {}) => ({ projection: 'geoCassini', rotate: [-lon, 0] })
+		// Cassini is the transverse aspect of the equirectangular projection; d3 has
+		// no geoCassini factory (see https://observablehq.com/@d3/cassini).
+		_d3: ({ lon = 0 } = {}) => ({
+			projection: 'geoEquirectangular',
+			rotate: [-lon, 0, 90],
+			angle: -90
+		})
 	}
 ];

@@ -79,6 +79,50 @@ describe('suggest_generic_projections', () => {
 	});
 });
 
+describe('suggest_generic_projections — README examples', () => {
+	const ids = (bbox: BBox) => suggest_generic_projections(bbox).map((d) => d.id);
+
+	it('metropolitan France is a local-scale bbox', () => {
+		expect(ids([-5, 41, 10, 51])).toEqual([
+			'equirectangular',
+			'mercator',
+			'transverse_cylindrical_equal_area',
+			'transverse_mercator'
+		]);
+	});
+
+	it('Europe gets the conic projections', () => {
+		expect(ids([-20, 35, 30, 65])).toEqual(['albers_conic', 'lambert_conformal_conic', 'equidistant_conic']);
+	});
+
+	it('a polar landscape region gets the three azimuthal projections, centred on the pole', () => {
+		const result = suggest_generic_projections([-180, 75, 180, 90]);
+		expect(result.map((d) => d.id)).toEqual(['laea', 'stereographic', 'azimuthal_equidistant']);
+		expect(result.every((d) => d.d3?.rotate?.[1] === -90)).toBe(true);
+	});
+});
+
+describe('suggest_generic_projections — antimeridian', () => {
+	it('measures the shape of a bbox crossing the antimeridian (portrait, not landscape)', () => {
+		// 175° E → 175° W is 10° wide and 40° tall: a portrait region.
+		const ids = suggest_generic_projections([175, -50, -175, -10]).map((d) => d.id);
+		expect(ids).toEqual(['transverse_cylindrical_equal_area', 'transverse_mercator', 'cassini']);
+	});
+
+	it('gives the same result as the equivalent bbox that does not cross', () => {
+		const crossing = suggest_generic_projections([175, -50, -175, -10]).map((d) => d.id);
+		const shifted = suggest_generic_projections([-5, -50, 5, -10]).map((d) => d.id);
+		expect(crossing).toEqual(shifted);
+	});
+
+	it('excludes Orthographic for a crossing hemisphere wider than 180°', () => {
+		// 60° E → 60° W across the antimeridian is 240° wide.
+		const ids = suggest_generic_projections([60, 20, -60, 80]).map((d) => d.id);
+		expect(ids).not.toContain('orthographic');
+		expect(ids).toContain('laea');
+	});
+});
+
 describe('match_national_projections', () => {
 	it('matches France for a French bbox', () => {
 		const bbox: BBox = [-4, 42, 8, 50];

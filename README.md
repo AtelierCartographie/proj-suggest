@@ -43,24 +43,28 @@ const { national, generic } = suggest_projections(bbox);
 
 console.log(national);
 // [
+//   { id: 'eu', epsg: '3035', projection: 'lambert azimuthal equal area', ..., share: 0.07, ratio: 0.07, within: true },
 //   {
 //     id: 'france', epsg: '2154', projection: 'lambert93',
 //     bbox: [-6, 41.2, 10.4, 51.6],
 //     proj4: '+proj=lcc +lat_0=46.5 +lon_0=3 +lat_1=49 +lat_2=44 ...',
 //     d3: { projection: 'geoConicConformal', rotate: [-3, 0], parallels: [44, 49] },
-//     share: 0.93, ratio: 1.1, within: true
+//     share: 0.87, ratio: 0.89, within: false
 //   }
 // ]
 
+// Metropolitan France covers ~0.25 % of the Earth: below the 1/200 threshold,
+// it is a `local` scale bbox (see Step 1 below).
 console.log(generic);
 // [
 //   {
-//     id: 'albers_conic', name: 'Albers Conic', scale: ['region'], shape: 'round', equalarea: true,
-//     proj4: { string: '+proj=aea +lon_0=2.5 +lat_1=47.67 +lat_2=44.33 +lat_0=46 ...' },
-//     d3: { projection: 'geoAlbers', rotate: [-2.5, 0], parallels: [44.33, 47.67] }
+//     id: 'equirectangular', name: 'Equirectangular', scale: [...], shape: 'rectangular',
+//     proj4: { string: '+proj=eqc +lon_0=2.5 +lat_ts=0 ...' },
+//     d3: { projection: 'geoEquirectangular', rotate: [-2.5, 0] }
 //   },
-//   { id: 'lambert_conformal_conic', ... },
-//   { id: 'equidistant_conic', ... }
+//   { id: 'mercator', ... },
+//   { id: 'transverse_cylindrical_equal_area', ... },
+//   { id: 'transverse_mercator', ... }
 // ]
 
 // Without national projections
@@ -125,7 +129,7 @@ interface ProjectionSuggestions {
 
 interface ReduceOptions {
 	detach_gap?: number; // Max gap (degrees) between two bboxes belonging to the same landmass (default: 3)
-	retain?: number; // Minimum share of area to keep in the result (default: 0.85)
+	retain?: number; // Minimum share of area to keep in the result (default: 0.75)
 }
 
 interface RepresentativeBBox {
@@ -146,14 +150,17 @@ interface Proj4Usage {
 }
 
 /**
- * Usage with d3-geo / d3-geo-projection.
- * If `snippet` is present, use this code instead of the individual parameters.
+ * Usage with d3-geo / d3-geo-projection / d3-geo-polygon.
+ * Apply the fields in this order. If `snippet` is present, use this code instead
+ * of the individual parameters.
  */
 interface D3Usage {
 	projection: string; // Factory function name, e.g. "geoAlbers", "geoOrthographic"
 	rotate?: [number, number] | [number, number, number]; // .rotate([λ, φ]) or .rotate([λ, φ, γ])
 	center?: [number, number]; // .center([lon, lat])
-	parallels?: [number, number]; // .parallels([lat1, lat2])
+	parallels?: [number, number]; // .parallels([lat1, lat2]) — conic projections
+	parallel?: number; // .parallel(lat) — single-parallel projections (cylindrical equal area, Bonne…)
+	angle?: number; // .angle(deg) — post-projection rotation (transverse aspects)
 	snippet?: string; // Manual construction code (interrupted projections, etc.)
 }
 
@@ -433,6 +440,8 @@ console.log(national.some((d) => d.id === 'usa')); // true → Albers EPSG:5070
 representative_bbox(boxes, { detach_gap: 5, retain: 0.9 });
 ```
 
+**Per-polygon boxes.** With one bbox per *polygon* rather than per state — e.g. Natural Earth 50m through `world-atlas` — no box straddles the antimeridian: the Aleutian Islands are split into polygons on both sides of 180°. They still join Alaska's component, because the gap between boxes is measured the short way round the globe. Alaska then weighs about 21 % of the total bbox area, which the default `retain` of 0.75 lets go: the result is again the 48 contiguous states.
+
 > **Performance.** Binning the features runs in O(n); clustering the components runs in O(m²), where `m` is the number of *occupied cells* (≪ n) — dense datasets such as the ~35,000 French communes reduce to a small `m`. For sparse inputs covering the whole globe at high resolution, a spatial index over the nodes would lift this ceiling (a deferred optimization).
 
 ---
@@ -457,10 +466,23 @@ const { national, generic } = suggest_projections(france);
 console.log(national[0].proj4); // '+proj=lcc +lat_0=46.5 +lon_0=3 +lat_1=49 +lat_2=44 ...'
 console.log(national[0].d3); // { projection: 'geoConicConformal', rotate: [-3, 0], parallels: [44, 49] }
 
-// Generic projections: results calibrated on the bbox
+// Generic projections: France is a `local` scale bbox (~0.25 % of the Earth)
+console.log(generic.map((d) => d.id));
+// ['equirectangular', 'mercator', 'transverse_cylindrical_equal_area', 'transverse_mercator']
+console.log(generic[0].proj4.string); // '+proj=eqc +lon_0=2.5 +lat_ts=0 ...'
+console.log(generic[0].d3); // { projection: 'geoEquirectangular', rotate: [-2.5, 0] }
+```
+
+### Suggestion for a temperate region (Europe)
+
+```ts
+const europe: BBox = [-20, 35, 30, 65];
+
+const { generic } = suggest_projections(europe);
 console.log(generic[0].id); // 'albers_conic'
-console.log(generic[0].proj4.string); // '+proj=aea +lon_0=2.5 +lat_0=46 +lat_1=44.33 +lat_2=47.67 ...'
-console.log(generic[0].d3); // { projection: 'geoAlbers', rotate: [-2.5, 0], parallels: [44.33, 47.67] }
+console.log(generic[0].proj4.string); // '+proj=aea +lon_0=5 +lat_1=55 +lat_2=45 +lat_0=50 ...'
+console.log(generic[0].d3); // { projection: 'geoAlbers', rotate: [-5, 0], parallels: [55, 45] }
+// → then Lambert Conformal Conic and Equidistant Conic, with the same parameters
 ```
 
 ### Detailed validation example
@@ -486,8 +508,10 @@ if (!result.valid) {
 const world: BBox = [-180, -90, 180, 90];
 
 suggest_projections(world);
-// → generic: Equal Earth, Equirectangular, Mercator, Bertin 1953, Gall-Peters, Times,
-//   Bonne, Atlantis, Mollweide Interrupted, Mollweide Interrupted Oceans, LAEA
+// → generic: Equirectangular, Mercator, Gall-Peters, Times, Imago, Armadillo,
+//   Bertin 1953, Atlantis, Bonne, Air Ocean, Mollweide 2 Hemispheres,
+//   Mollweide Interrupted, Mollweide Interrupted Oceans, Waterman Butterfly,
+//   Equal Earth, LAEA
 ```
 
 ### Suggestion for a polar area
@@ -505,7 +529,7 @@ suggest_projections(arctic);
 const tropics: BBox = [-30, -10, 50, 10];
 
 suggest_projections(tropics);
-// → generic: Mercator (lat=0), Cylindrical Equal Area (lat=0), Equirectangular (lat=0)
+// → generic: Equirectangular, Mercator, Cylindrical Equal Area (centred on the equator)
 ```
 
 ### Suggestion for a portrait-oriented area (elongated north-south)
@@ -553,10 +577,25 @@ if (national.length > 0) {
 
 ### Using d3-geo
 
+Factories come from three packages: `d3-geo` (included in `d3`), `d3-geo-projection` (Bertin 1953, Times, cylindrical equal area, Bonne, Armadillo, interrupted Mollweide, Waterman…) and `d3-geo-polygon` (Imago, Air Ocean).
+
 ```ts
 import * as d3 from 'd3';
-import * as d3geo from 'd3-geo-projection';
+import * as d3proj from 'd3-geo-projection';
+import * as d3poly from 'd3-geo-polygon';
 import { suggest_projections } from '@ateliercartographie/proj-suggest';
+import type { D3Usage } from '@ateliercartographie/proj-suggest';
+
+function build({ projection, rotate, center, parallels, parallel, angle }: D3Usage) {
+	const factory = d3[projection] ?? d3proj[projection] ?? d3poly[projection];
+	const proj = factory();
+	if (rotate) proj.rotate(rotate);
+	if (center) proj.center(center);
+	if (parallels) proj.parallels(parallels);
+	if (parallel !== undefined) proj.parallel(parallel);
+	if (angle !== undefined) proj.angle(angle);
+	return proj;
+}
 
 const bbox: BBox = [-20, 35, 30, 65]; // Europe
 const { generic, national } = suggest_projections(bbox);
@@ -564,35 +603,30 @@ const { generic, national } = suggest_projections(bbox);
 // Generic projections
 const suggestion = generic[0];
 if (suggestion.d3) {
-	const { projection, rotate, parallels, snippet } = suggestion.d3;
-
-	if (snippet) {
+	if (suggestion.d3.snippet) {
 		// Special case: a projection that must be built manually (e.g. mollweide_ocean)
 		// Evaluate or display the snippet as construction documentation
-		console.log(snippet);
+		console.log(suggestion.d3.snippet);
 	} else {
-		const factory = d3[projection] ?? d3geo[projection];
-		const proj = factory();
-		if (rotate) proj.rotate(rotate);
-		if (parallels) proj.parallels(parallels);
+		const proj = build(suggestion.d3);
 	}
 }
 
 // National projections — d3 is always present
-const { projection, rotate, parallels } = national[0].d3;
-const factory = d3[projection] ?? d3geo[projection];
-const proj = factory();
-if (rotate) proj.rotate(rotate);
-if (parallels) proj.parallels(parallels);
+const proj = build(national[0].d3);
 ```
+
+Transverse aspects that d3 lacks as a factory are expressed with a three-axis rotation and an output rotation, e.g. Cassini centred on 70° W: `{ projection: 'geoEquirectangular', rotate: [70, 0, 90], angle: -90 }`.
+
+The Swiss national projection (EPSG:2056, oblique Mercator on the Bessel ellipsoid) is given in d3 as its spherical equivalent, a Mercator rotated onto Bern (`geoMercator().rotate([-7.44, -46.95])`); the difference stays below 0.5 km over Switzerland.
 
 ## Development
 
 ```bash
 pnpm install
-pnpm dev       # Development server with an interactive playground
+pnpm check     # Type check (tsc)
 pnpm test      # Unit tests (vitest)
-pnpm package   # Build the library
+pnpm build     # Build the library (tsc + publint)
 ```
 
 ## References

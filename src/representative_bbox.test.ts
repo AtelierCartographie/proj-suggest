@@ -2,6 +2,27 @@ import { describe, it, expect } from 'vitest';
 import { representative_bbox, suggest_projections, get_bbox_gap, union_bbox } from './lib/index.js';
 import type { BBox } from './lib/index.js';
 import { us_states_20m } from './fixtures/us_states_20m.js';
+import { feature } from 'topojson-client';
+import countries50m from 'world-atlas/countries-50m.json' with { type: 'json' };
+
+/** One bbox per polygon of a Natural Earth 50m country (as split by world-atlas). */
+function polygon_boxes(name: string): BBox[] {
+	const topo = countries50m as any;
+	const country = (feature(topo, topo.objects.countries) as any).features.find(
+		(f: any) => f.properties.name === name
+	);
+	return country.geometry.coordinates.map((polygon: [number, number][][]) => {
+		const b: BBox = [180, 90, -180, -90];
+		for (const ring of polygon)
+			for (const [x, y] of ring) {
+				b[0] = Math.min(b[0], x);
+				b[1] = Math.min(b[1], y);
+				b[2] = Math.max(b[2], x);
+				b[3] = Math.max(b[3], y);
+			}
+		return b;
+	});
+}
 
 // CONUS = lower-48 states + DC, i.e. the USA minus Alaska, Hawaii, Puerto Rico.
 const CONUS: BBox = [-124.7258, 24.4981, -66.9499, 49.3844];
@@ -22,6 +43,23 @@ describe('representative_bbox', () => {
 		const raw = union_bbox(us_states_20m);
 		// Alaska's antimeridian wrap blows the longitude span past 180°.
 		expect(raw[2] - raw[0]).toBeGreaterThan(180);
+	});
+
+	it('recovers CONUS from per-polygon boxes (Natural Earth 50m, Aleutians split at 180°)', () => {
+		const boxes = polygon_boxes('United States of America');
+		// No polygon straddles the antimeridian: the Aleutians lie on both sides.
+		expect(boxes.some((b) => b[0] > 0)).toBe(true);
+		expect(boxes.every((b) => b[2] - b[0] < 180)).toBe(true);
+		const { bbox, trimmed } = representative_bbox(boxes);
+		expect(trimmed).toBe(true);
+		expect(bboxClose(bbox, CONUS, 0.2)).toBe(true);
+		expect(suggest_projections(boxes).national.some((d) => d.id === 'usa')).toBe(true);
+	});
+
+	it('keeps peninsular Malaysia with Borneo (per-polygon boxes, Natural Earth 50m)', () => {
+		const { bbox } = representative_bbox(polygon_boxes('Malaysia'));
+		expect(bbox[0]).toBeLessThan(101); // west coast of the peninsula
+		expect(bbox[2]).toBeGreaterThan(119); // Sabah
 	});
 
 	it('keeps a near-shore island across a strait (Corsica), drops overseas DOM', () => {
