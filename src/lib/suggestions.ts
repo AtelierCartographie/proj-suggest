@@ -58,7 +58,9 @@ export function suggest_generic_projections(bbox: BBox): ResolvedProjection[] {
 
 	const earth_share = get_earth_share(bbox);
 	const scale_type = get_scale(earth_share);
-	const ratio = (y1 - y0) / (x1 - x0);
+	// Longitudinal width, unwrapped when the bbox crosses the antimeridian (x0 > x1).
+	const width = x1 >= x0 ? x1 - x0 : x1 + 360 - x0;
+	const ratio = (y1 - y0) / width;
 	const ratio_type = get_ratio_type(ratio);
 
 	// World: no parameters needed
@@ -106,7 +108,7 @@ export function suggest_generic_projections(bbox: BBox): ResolvedProjection[] {
 				filter_ids.push('mercator', 'cylindrical_equal_area', 'equirectangular');
 				break;
 			}
-			if (x1 - x0 <= 180) filter_ids.push('orthographic');
+			if (width <= 180) filter_ids.push('orthographic');
 			filter_ids.push('laea', 'azimuthal_equidistant');
 			break;
 

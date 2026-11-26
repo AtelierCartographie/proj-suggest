@@ -146,14 +146,17 @@ interface Proj4Usage {
 }
 
 /**
- * Usage with d3-geo / d3-geo-projection.
- * If `snippet` is present, use this code instead of the individual parameters.
+ * Usage with d3-geo / d3-geo-projection / d3-geo-polygon.
+ * Apply the fields in this order. If `snippet` is present, use this code instead
+ * of the individual parameters.
  */
 interface D3Usage {
 	projection: string; // Factory function name, e.g. "geoAlbers", "geoOrthographic"
 	rotate?: [number, number] | [number, number, number]; // .rotate([λ, φ]) or .rotate([λ, φ, γ])
 	center?: [number, number]; // .center([lon, lat])
-	parallels?: [number, number]; // .parallels([lat1, lat2])
+	parallels?: [number, number]; // .parallels([lat1, lat2]) — conic projections
+	parallel?: number; // .parallel(lat) — single-parallel projections (cylindrical equal area, Bonne…)
+	angle?: number; // .angle(deg) — post-projection rotation (transverse aspects)
 	snippet?: string; // Manual construction code (interrupted projections, etc.)
 }
 
@@ -553,10 +556,25 @@ if (national.length > 0) {
 
 ### Using d3-geo
 
+Factories come from three packages: `d3-geo` (included in `d3`), `d3-geo-projection` (Bertin 1953, Times, cylindrical equal area, Bonne, Armadillo, interrupted Mollweide, Waterman…) and `d3-geo-polygon` (Imago, Air Ocean).
+
 ```ts
 import * as d3 from 'd3';
-import * as d3geo from 'd3-geo-projection';
+import * as d3proj from 'd3-geo-projection';
+import * as d3poly from 'd3-geo-polygon';
 import { suggest_projections } from '@ateliercartographie/proj-suggest';
+import type { D3Usage } from '@ateliercartographie/proj-suggest';
+
+function build({ projection, rotate, center, parallels, parallel, angle }: D3Usage) {
+	const factory = d3[projection] ?? d3proj[projection] ?? d3poly[projection];
+	const proj = factory();
+	if (rotate) proj.rotate(rotate);
+	if (center) proj.center(center);
+	if (parallels) proj.parallels(parallels);
+	if (parallel !== undefined) proj.parallel(parallel);
+	if (angle !== undefined) proj.angle(angle);
+	return proj;
+}
 
 const bbox: BBox = [-20, 35, 30, 65]; // Europe
 const { generic, national } = suggest_projections(bbox);
@@ -564,35 +582,30 @@ const { generic, national } = suggest_projections(bbox);
 // Generic projections
 const suggestion = generic[0];
 if (suggestion.d3) {
-	const { projection, rotate, parallels, snippet } = suggestion.d3;
-
-	if (snippet) {
+	if (suggestion.d3.snippet) {
 		// Special case: a projection that must be built manually (e.g. mollweide_ocean)
 		// Evaluate or display the snippet as construction documentation
-		console.log(snippet);
+		console.log(suggestion.d3.snippet);
 	} else {
-		const factory = d3[projection] ?? d3geo[projection];
-		const proj = factory();
-		if (rotate) proj.rotate(rotate);
-		if (parallels) proj.parallels(parallels);
+		const proj = build(suggestion.d3);
 	}
 }
 
 // National projections — d3 is always present
-const { projection, rotate, parallels } = national[0].d3;
-const factory = d3[projection] ?? d3geo[projection];
-const proj = factory();
-if (rotate) proj.rotate(rotate);
-if (parallels) proj.parallels(parallels);
+const proj = build(national[0].d3);
 ```
+
+Transverse aspects that d3 lacks as a factory are expressed with a three-axis rotation and an output rotation, e.g. Cassini centred on 70° W: `{ projection: 'geoEquirectangular', rotate: [70, 0, 90], angle: -90 }`.
+
+The Swiss national projection (EPSG:2056, oblique Mercator on the Bessel ellipsoid) is given in d3 as its spherical equivalent, a Mercator rotated onto Bern (`geoMercator().rotate([-7.44, -46.95])`); the difference stays below 0.5 km over Switzerland.
 
 ## Development
 
 ```bash
 pnpm install
-pnpm dev       # Development server with an interactive playground
+pnpm check     # Type check (tsc)
 pnpm test      # Unit tests (vitest)
-pnpm package   # Build the library
+pnpm build     # Build the library (tsc + publint)
 ```
 
 ## References

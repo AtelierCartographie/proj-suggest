@@ -79,6 +79,27 @@ describe('suggest_generic_projections', () => {
 	});
 });
 
+describe('suggest_generic_projections — antimeridian', () => {
+	it('measures the shape of a bbox crossing the antimeridian (portrait, not landscape)', () => {
+		// 175° E → 175° W is 10° wide and 40° tall: a portrait region.
+		const ids = suggest_generic_projections([175, -50, -175, -10]).map((d) => d.id);
+		expect(ids).toEqual(['transverse_cylindrical_equal_area', 'transverse_mercator', 'cassini']);
+	});
+
+	it('gives the same result as the equivalent bbox that does not cross', () => {
+		const crossing = suggest_generic_projections([175, -50, -175, -10]).map((d) => d.id);
+		const shifted = suggest_generic_projections([-5, -50, 5, -10]).map((d) => d.id);
+		expect(crossing).toEqual(shifted);
+	});
+
+	it('excludes Orthographic for a crossing hemisphere wider than 180°', () => {
+		// 60° E → 60° W across the antimeridian is 240° wide.
+		const ids = suggest_generic_projections([60, 20, -60, 80]).map((d) => d.id);
+		expect(ids).not.toContain('orthographic');
+		expect(ids).toContain('laea');
+	});
+});
+
 describe('match_national_projections', () => {
 	it('matches France for a French bbox', () => {
 		const bbox: BBox = [-4, 42, 8, 50];

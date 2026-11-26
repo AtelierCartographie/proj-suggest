@@ -64,7 +64,11 @@ export const proj_countries: ProjCountry[] = [
 		bbox: [6, 45.8, 10.5, 47.8],
 		proj4:
 			'+proj=somerc +lat_0=46.9524055555556 +lon_0=7.43958333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs',
-		d3: { projection: 'geoTransverseMercator', rotate: [-7.4, -46.9] }
+		// Spherical oblique Mercator whose central line runs east-west through the
+		// origin (Bern) — the spherical core of somerc. Rotating the normal Mercator
+		// brings the origin onto the equator. Differs from proj4 (Bessel ellipsoid,
+		// Rosenmund's double projection) by < 0.5 km over Switzerland.
+		d3: { projection: 'geoMercator', rotate: [-7.44, -46.95] }
 	},
 	{
 		id: 'brazil',
