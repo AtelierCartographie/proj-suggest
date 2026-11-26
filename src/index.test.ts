@@ -5,6 +5,7 @@ import {
 	match_national_projections,
 	validate_bbox
 } from './lib/index.js';
+import { get_intersection_area, check_within } from './lib/utils.js';
 import type { BBox } from './lib/index.js';
 import { proj_countries } from './lib/list_proj_countries.js';
 
@@ -303,6 +304,31 @@ describe('match_national_projections — Italy', () => {
 	it('does not suggest Italy for metropolitan France', () => {
 		const france: BBox = [-5, 41, 10, 51];
 		expect(match_national_projections(france).map((d) => d.id)).not.toContain('italy');
+	});
+});
+
+describe('bbox intersection across the antimeridian', () => {
+	it('measures the overlap of a box crossing the antimeridian', () => {
+		// Two 20°-wide boxes sharing the 10° west of the antimeridian.
+		expect(get_intersection_area([170, 0, -170, 10], [160, 0, 180, 10])).toBeCloseTo(0.5);
+		expect(get_intersection_area([160, 0, 180, 10], [170, 0, -170, 10])).toBeCloseTo(0.5);
+		// Overlap on both sides of the antimeridian.
+		expect(get_intersection_area([175, 0, -175, 10], [170, 0, -170, 10])).toBeCloseTo(0.5);
+		// Disjoint.
+		expect(get_intersection_area([170, 0, -170, 10], [0, 0, 10, 10])).toBe(0);
+	});
+
+	it('checks containment of a box crossing the antimeridian', () => {
+		expect(check_within([175, 0, -175, 10], [170, 0, -170, 10])).toBe(true);
+		expect(check_within([175, 0, -175, 10], [-180, -90, 180, 90])).toBe(true);
+		expect(check_within([175, 0, -175, 10], [170, 0, 180, 10])).toBe(false);
+		expect(check_within([-179, 0, -171, 10], [170, 0, -170, 10])).toBe(true);
+		expect(check_within([0, 0, 10, 10], [170, 0, -170, 10])).toBe(false);
+	});
+
+	it('is unchanged for ordinary boxes', () => {
+		expect(get_intersection_area([0, 0, 10, 10], [5, 0, 15, 10])).toBeCloseTo(0.5);
+		expect(check_within([1, 1, 2, 2], [0, 0, 10, 10])).toBe(true);
 	});
 });
 

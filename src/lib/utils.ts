@@ -79,27 +79,44 @@ export function validate_bbox(bbox: BBox): BBoxValidation {
 }
 
 /**
+ * Splits the longitude range of a bbox into one or two intervals within
+ * [−180, 180]: a bbox crossing the antimeridian (`lon_min > lon_max`) yields
+ * `[lon_min, 180]` and `[−180, lon_max]`.
+ */
+function lon_intervals(bbox: BBox): [number, number][] {
+	const [lon_min, , lon_max] = bbox;
+	return lon_min > lon_max
+		? [
+				[lon_min, 180],
+				[-180, lon_max]
+			]
+		: [[lon_min, lon_max]];
+}
+
+/**
  * Calculates the share of the area of bbox_2 that is intersected by bbox_1.
+ * Handles bounding boxes that cross the 180th meridian.
  * @returns A number between 0 and 1.
  */
 export function get_intersection_area(bbox_1: BBox, bbox_2: BBox): number {
-	const [min_x1, min_y1, max_x1, max_y1] = bbox_1;
-	const [min_x2, min_y2, max_x2, max_y2] = bbox_2;
+	const lat_min = Math.max(bbox_1[1], bbox_2[1]);
+	const lat_max = Math.min(bbox_1[3], bbox_2[3]);
+	// Exit if bbox_1 and bbox_2 don't overlap in latitude
+	if (lat_max - lat_min < 0) return 0;
 
-	const overlap_bbox: BBox = [
-		Math.max(min_x1, min_x2),
-		Math.max(min_y1, min_y2),
-		Math.min(max_x1, max_x2),
-		Math.min(max_y1, max_y2)
-	];
+	// Longitude overlap, summed over the (at most two) intervals of each bbox
+	let lon_overlap = 0;
+	for (const [a0, a1] of lon_intervals(bbox_1)) {
+		for (const [b0, b1] of lon_intervals(bbox_2)) {
+			lon_overlap += Math.max(0, Math.min(a1, b1) - Math.max(a0, b0));
+		}
+	}
+	if (lon_overlap === 0) return 0;
 
-	// Exit if bbox_1 and bbox_2 don't overlap
-	if (overlap_bbox[2] - overlap_bbox[0] < 0 || overlap_bbox[3] - overlap_bbox[1] < 0) return 0;
-
-	const overlap_area = get_bbox_area(overlap_bbox);
-	const bbox_2_area = get_bbox_area(bbox_2);
-
-	return overlap_area / bbox_2_area;
+	const overlap_area = Math.abs(
+		to_radian(lon_overlap) * (Math.sin(to_radian(lat_max)) - Math.sin(to_radian(lat_min)))
+	);
+	return overlap_area / get_bbox_area(bbox_2);
 }
 
 /**
@@ -111,12 +128,14 @@ export function get_bbox_ratio_area(bbox_1: BBox, bbox_2: BBox): number {
 
 /**
  * Checks if bbox_1 is within bbox_2.
+ * Handles bounding boxes that cross the 180th meridian.
  */
 export function check_within(bbox_1: BBox, bbox_2: BBox): boolean {
-	const [min_x1, min_y1, max_x1, max_y1] = bbox_1;
-	const [min_x2, min_y2, max_x2, max_y2] = bbox_2;
-
-	return min_x1 >= min_x2 && min_y1 >= min_y2 && max_x1 <= max_x2 && max_y1 <= max_y2;
+	if (bbox_1[1] < bbox_2[1] || bbox_1[3] > bbox_2[3]) return false;
+	const outer = lon_intervals(bbox_2);
+	return lon_intervals(bbox_1).every(([a0, a1]) =>
+		outer.some(([b0, b1]) => a0 >= b0 && a1 <= b1)
+	);
 }
 
 /** Earth surface area in steradians. */
