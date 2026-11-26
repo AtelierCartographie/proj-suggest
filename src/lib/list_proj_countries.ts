@@ -18,6 +18,12 @@ export interface ProjCountry {
 	proj4: string;
 	/** Configuration for use with d3-geo / d3-geo-projection. */
 	d3: D3Usage;
+	/**
+	 * Set on entries that span several countries (`eu`). They are kept by
+	 * `match_national_projections` even when a single country fits the
+	 * reference bbox better.
+	 */
+	supranational?: boolean;
 }
 
 export const proj_countries: ProjCountry[] = [
@@ -28,7 +34,8 @@ export const proj_countries: ProjCountry[] = [
 		bbox: [-16.1, 32.9, 40.2, 84.7],
 		proj4:
 			'+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs',
-		d3: { projection: 'geoAzimuthalEqualArea', rotate: [-10, -52] }
+		d3: { projection: 'geoAzimuthalEqualArea', rotate: [-10, -52] },
+		supranational: true
 	},
 	{
 		id: 'france',
@@ -488,12 +495,16 @@ export const proj_countries: ProjCountry[] = [
 			'+proj=tmerc +lat_0=31.7343936111111 +lon_0=35.2045169444444 +k=1.0000067 +x_0=219529.584 +y_0=626907.39 +ellps=GRS80 +units=m +no_defs',
 		d3: { projection: 'geoTransverseMercator', rotate: [-35.2, -31.73] }
 	},
-	// Russia
+	// Russia: mainland and islands from the Gulf of Finland (26.85° E) to 180°. The
+	// Kaliningrad exclave (19.6° E) is left out: it would stretch the bbox over
+	// Belarus, Bulgaria, Moldova and the Baltic states. A dataset that includes it
+	// still matches through `share`. The bbox stops at 180°, so that datasets clipped
+	// at the antimeridian fall within it; Chukotka east of 180° (−169°) is left out.
 	{
 		id: 'russia',
 		epsg: '3576',
 		projection: 'lambert azimuthal equal area',
-		bbox: [19.65, 41.19, 180, 81.9],
+		bbox: [26.85, 41.18, 180, 81.86],
 		proj4:
 			'+proj=laea +lat_0=90 +lon_0=90 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs',
 		d3: { projection: 'geoAzimuthalEqualArea', rotate: [-90, -90] }

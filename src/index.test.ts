@@ -293,12 +293,10 @@ describe('match_national_projections — Italy', () => {
 		const switzerland: BBox = [5.96, 45.82, 10.49, 47.81];
 		const austria: BBox = [9.53, 46.37, 17.16, 49.02];
 		const slovenia: BBox = [13.38, 45.42, 16.61, 46.88];
-		for (const bbox of [switzerland, austria]) {
+		// Slovenia lies inside the Italian bbox, but its own projection fits closely.
+		for (const bbox of [switzerland, austria, slovenia]) {
 			expect(match_national_projections(bbox).map((d) => d.id)).not.toContain('italy');
 		}
-		// Slovenia lies inside the Italian bbox: `within` makes it match, like any
-		// small neighbour fully inside a country bbox (cf. Malta, Corsica).
-		expect(match_national_projections(slovenia).map((d) => d.id)).toContain('italy');
 	});
 
 	it('does not suggest Italy for metropolitan France', () => {
@@ -401,6 +399,64 @@ describe('match_national_projections — official national grids', () => {
 		const ids = match_national_projections([-180, 51.2, -130, 71.4]).map((d) => d.id);
 		expect(ids).toContain('alaska');
 		expect(ids).not.toContain('canada');
+	});
+});
+
+describe('match_national_projections — closest fit wins over containment', () => {
+	const ids = (bbox: BBox) => match_national_projections(bbox).map((d) => d.id);
+
+	it('drops a larger country that merely contains a closely fitting one', () => {
+		expect(ids([5.741, 49.449, 6.526, 50.183])).not.toContain('france'); // Luxembourg
+		expect(ids([2.54, 49.5, 6.4, 51.5])).not.toContain('france'); // Belgium
+		expect(ids([-54.6, 2.118, -51.624, 5.748])).not.toContain('brazil'); // French Guiana
+		expect(ids([-56.408, 46.755, -56.119, 47.134])).not.toContain('canada'); // Saint-Pierre-et-Miquelon
+		expect(ids([124.607, 33.108, 130.923, 38.615])).toEqual(['south_korea']);
+		expect(ids([119.32, 21.9, 122.0, 25.29])).toEqual(['taiwan']);
+		for (const bbox of [
+			[21.773, 57.513, 28.206, 59.688], // Estonia
+			[20.973, 55.678, 28.235, 58.082], // Latvia
+			[20.954, 53.899, 26.835, 56.445], // Lithuania
+			[20.264, 43.62, 29.695, 48.26] // Romania
+		] as BBox[]) {
+			expect(ids(bbox)).not.toContain('russia');
+		}
+	});
+
+	it('keeps the supranational EU projection alongside the country', () => {
+		const luxembourg = ids([5.741, 49.449, 6.526, 50.183]);
+		expect(luxembourg).toContain('luxembourg');
+		expect(luxembourg).toContain('eu');
+	});
+
+	it('keeps every containing country when none fits closely', () => {
+		// Corsica lies in both the French and the Italian bboxes.
+		const corsica = ids([8.53, 41.33, 9.56, 43.03]);
+		expect(corsica).toContain('france');
+		expect(corsica).toContain('italy');
+		// A region still gets its country.
+		expect(ids([-5.14, 47.28, -1.02, 48.9])).toContain('france'); // Brittany
+	});
+});
+
+describe('match_national_projections — Russia', () => {
+	const ids = (bbox: BBox) => match_national_projections(bbox).map((d) => d.id);
+
+	it('matches Russia with or without Kaliningrad and Chukotka', () => {
+		expect(ids([26.85, 41.18, 180, 81.86])).toContain('russia'); // mainland, clipped at 180°
+		expect(ids([19.6, 41.18, 180, 81.86])).toContain('russia'); // with Kaliningrad
+		expect(ids([19.6, 41.18, -169, 81.86])).toContain('russia'); // and Chukotka, across 180°
+		expect(ids([35.1, 54.2, 40.2, 56.97])).toContain('russia'); // Moscow Oblast
+	});
+
+	it('does not suggest Russia for Belarus, Ukraine, Moldova or Bulgaria', () => {
+		for (const bbox of [
+			[23.18, 51.26, 32.74, 56.17],
+			[22.14, 44.39, 40.22, 52.38],
+			[26.63, 45.47, 30.16, 48.49],
+			[22.36, 41.24, 28.6, 44.22]
+		] as BBox[]) {
+			expect(ids(bbox)).not.toContain('russia');
+		}
 	});
 });
 

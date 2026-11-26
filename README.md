@@ -181,6 +181,7 @@ interface MatchedCountry {
 	bbox: BBox;
 	proj4: string; // Full proj4 string with geographically correct lon_0/lat_0
 	d3: D3Usage; // d3-geo config
+	supranational?: boolean; // true for entries spanning several countries (eu)
 	share: number; // Share of the country bbox covered by the intersection (0-1)
 	ratio: number; // Area ratio of reference bbox / country bbox
 	within: boolean; // Is the reference bbox entirely contained within the country bbox?
@@ -359,6 +360,8 @@ A national projection is considered a match if:
 Match = ( share ≥ 0.75 AND ratio < 2 ) OR within
 ```
 
+**Closest fit wins.** When at least one country fits the reference bbox closely (criteria 1 and 2), countries matched only through `within` are dropped: a bbox of Luxembourg returns `luxembourg`, not `france`; a bbox of Estonia returns `estonia`, not `russia`. When no country fits closely (a region, an island shared by two bboxes such as Corsica), every containing country is kept. Supranational entries (`eu`, flagged `supranational: true`) are always kept.
+
 ### Available countries
 
 | ID                    | EPSG        | Projection                    |
@@ -421,13 +424,13 @@ Match = ( share ≥ 0.75 AND ratio < 2 ) OR within
 
 The Canary Islands are kept out of the `spain` bbox: including them would stretch it over northern Morocco. A dataset covering all of Spain matches `spain` when passed as per-feature bboxes (the islands are discarded as a detached territory, see [Multi-bbox reduction](#multi-bbox-reduction)); a dataset covering only the Canaries matches `canary_islands`.
 
-**Italy** — the IGM "Fuso Italia" (RDN2008 / Italy zone, EPSG:7794): a single transverse Mercator zone on 12° E, scale factor 0.9985, false easting 7,000,000 m, introduced by the Istituto Geografico Militare to map the whole country without the discontinuity between UTM zones 32 and 33. The bbox covers the mainland, Sardinia, Sicily and the Pelagie Islands; small neighbours that fall inside it (San Marino, Vatican City, Slovenia, Malta) match `italy` through `within`.
+**Italy** — the IGM "Fuso Italia" (RDN2008 / Italy zone, EPSG:7794): a single transverse Mercator zone on 12° E, scale factor 0.9985, false easting 7,000,000 m, introduced by the Istituto Geografico Militare to map the whole country without the discontinuity between UTM zones 32 and 33. The bbox covers the mainland, Sardinia, Sicily and the Pelagie Islands; San Marino, Vatican City and Malta, which fall inside it, match `italy` through `within`.
 
 **Bboxes** are land extents of the territory (Eurostat GISCO 2024), with remote islands left out where they have their own projection or would distort the box: Portugal is mainland only (the Azores and Madeira use UTM 26/28), New Zealand leaves out the Chatham and outlying islands, Taiwan leaves out Kinmen and Matsu, Hawaii covers the main islands. Denmark, Norway, Sweden and Finland are covered without Greenland, the Faroe Islands or Svalbard.
 
 **French overseas departments** use the IGN UTM projections, as in the France composite of khartis-basemaps; Guadeloupe and Martinique share RGAF09 / UTM 20N. **Alaska** and **Hawaii** use the Albers insets of the USA composite (Alaska Albers, EPSG:3338, and ESRI:102007). The Alaska bbox crosses the antimeridian.
 
-A small territory that lies entirely inside a larger country bbox also matches that country through `within` (Luxembourg and Belgium → `france`, Slovenia → `italy`, French Guiana → `brazil`, Saint-Pierre-et-Miquelon → `canada`, the Baltic states and Romania → `russia`, South Korea and Taiwan → `china`); its own projection is listed alongside.
+**Russia**'s bbox runs from the Gulf of Finland (26.85° E) to 180°: the Kaliningrad exclave is left out, as it would stretch the bbox over Belarus, Bulgaria, Moldova and the Baltic states; a dataset including it (or Chukotka, across the antimeridian) still matches through `share`. Countries outside the catalogue whose bbox lies within a large country bbox still match that country (Mongolia → `russia` and `china`, North Korea, Nepal, Bhutan, Bangladesh → `china`).
 
 ---
 

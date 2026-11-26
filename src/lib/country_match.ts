@@ -12,6 +12,11 @@
  * A country is considered a match when the reference bbox is sufficiently
  * representative of it: ( share ≥ 0.75 AND ratio < 2 ) OR within.
  *
+ * When at least one country fits the reference bbox closely (share ≥ 0.75 AND
+ * ratio < 2), countries matched only because the reference bbox lies within
+ * their (larger) bbox are dropped: Luxembourg does not get France, nor Estonia
+ * Russia. Supranational entries (`eu`) are always kept.
+ *
  * This module has no equivalent in Projection Wizard and is original to proj-suggest.
  *
  * @copyright 2026 Thomas Ansart / Atelier Cartographie
@@ -34,9 +39,11 @@ export interface MatchedCountry extends ProjCountry {
  * bounding box, based on intersection share, area ratio, and containment.
  */
 export function match_national_projections(ref_bbox: BBox): MatchedCountry[] {
-	return get_intersecting_countries(ref_bbox).filter(
-		(d) => (d.share >= intersection_threshold && d.ratio < ratio_threshold) || d.within
-	);
+	const fits = (d: MatchedCountry) => d.share >= intersection_threshold && d.ratio < ratio_threshold;
+	const matches = get_intersecting_countries(ref_bbox).filter((d) => fits(d) || d.within);
+	// A country that fits closely wins over countries that merely contain the bbox.
+	const has_close_fit = matches.some((d) => !d.supranational && fits(d));
+	return has_close_fit ? matches.filter((d) => d.supranational || fits(d)) : matches;
 }
 
 /**
