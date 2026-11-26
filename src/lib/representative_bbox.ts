@@ -48,7 +48,9 @@ export interface ReduceOptions {
 	/**
 	 * Minimum share of total (bbox) area the result must retain. Detached
 	 * components are dropped only while their cumulative area stays within
-	 * `1 − retain`. @default 0.85
+	 * `1 − retain`. 0.75 lets the 48 contiguous US states shed Alaska (≈ 21 % of
+	 * the bbox area with per-polygon boxes) while keeping e.g. peninsular
+	 * Malaysia, which a lower value would drop. @default 0.75
 	 */
 	retain?: number;
 }
@@ -83,7 +85,7 @@ interface Component {
  * @throws if `boxes` is empty.
  */
 export function representative_bbox(boxes: BBox[], options: ReduceOptions = {}): RepresentativeBBox {
-	const { detach_gap = 3, retain = 0.85 } = options;
+	const { detach_gap = 3, retain = 0.75 } = options;
 
 	if (boxes.length === 0) throw new Error('representative_bbox: no boxes provided');
 	if (boxes.length === 1) return { bbox: boxes[0], kept: 1, outliers: [], trimmed: false };

@@ -334,7 +334,7 @@ export const projections: Projection[] = [
 	{
 		id: 'azimuthal_equidistant',
 		name: 'Azimuthal Equidistant',
-		scale: ['hemisphere'],
+		scale: ['hemisphere', 'region'],
 		shape: 'discontinuous',
 		_proj4: ({ lon = 0, lat = 0 } = {}) =>
 			`+proj=aeqd +lon_0=${lon} +lat_0=${lat} ${end_proj}`,
